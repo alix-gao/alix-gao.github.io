@@ -5,4 +5,17 @@ categories: [blog, embedded]
 tags: [threadx, xen]
 ---
 
-# how to bring up threadx on xen
+# what are threadx & xen?
+
+# why threadx & xen?
+
+# Prerequisites
+Development Environment
+
+# whole architecture
+
+# all steps
+
+# conclusion
+
+# future
