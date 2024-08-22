@@ -5,6 +5,8 @@ categories: [blog, embedded]
 tags: [threadx, xen]
 ---
 
+# writing ...
+
 # what are threadx & xen?
 
 # why threadx & xen?
