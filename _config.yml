@@ -16,7 +16,7 @@ timezone:
 
 title: alix.gao # the main title
 
-tagline: .articles # it will display as the sub-title
+tagline: articles # it will display as the sub-title
 
 description: >- # used by seo meta and the atom feed
   A minimal, responsive and feature-rich Jekyll theme for technical writing.
@@ -124,8 +124,8 @@ comments:
     mapping: 'pathname' # optional, default to 'pathname'
     strict: '0' # optional, default to '0'
     input_position: 'bottom' # optional, default to 'bottom'
-    lang: 'site.lang' # optional, default to the value of `site.lang`
-    reactions_enabled: '1' # optional, default to the value of `1`
+    lang: # optional, default to the value of `site.lang`
+    reactions_enabled: # optional, default to the value of `1`
 
 # Self-hosted static assets, optional › https://github.com/cotes2020/chirpy-static-assets
 assets:
