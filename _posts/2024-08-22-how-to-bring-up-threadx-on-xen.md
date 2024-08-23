@@ -17,6 +17,7 @@ others include, resource efficiency, isolation and security, scalability and fle
 QNX is primarily used in the automotive sector and is a closed-source operating system.
 ## prerequisites
 in the development environment, I used QEMU to emulate one board, and the board's SoC adopts an ARM multi-core processor. using QEMU is flexible, low-cost, convenient for debugging (the most important aspect), and easy to promote (users don't need to purchase a development board).
+
 all the reference implementation: https://github.com/tw-embedded/baize-board
 ## whole architecture
 ![architecture image](../assets/2024.08/picture1.png)
