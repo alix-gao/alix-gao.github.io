@@ -26,6 +26,16 @@ all the reference implementation: https://github.com/tw-embedded/baize-board
 ## whole architecture
 ![architecture image](../assets/2024.08/picture1.png)
 
+Exception Levels (EL): hierarchical privilege levels in ARM architecture. it determines the amount of control and access a process or code running at a particular level has. there are four levels, from EL0 to EL3, each with different levels of privilege:
+
+EL0: the lowest privilege level, typically used for user applications.
+
+EL1: used for operating system kernels and drivers.
+
+EL2: used for hypervisors in virtualization scenarios.
+
+EL3: the highest privilege level, usually for secure monitor code and system management.
+
 ## all steps
 
 ## conclusion
