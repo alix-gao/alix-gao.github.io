@@ -117,10 +117,10 @@ comments:
     issue_term: # < url | pathname | title | ...>
   # Giscus options › https://giscus.app
   giscus:
-    repo: alix-gao/discussion-repo # <gh-username>/<repo>
-    repo_id: R_kgDOMmtsoQ
+    repo: alix-gao/alix-gao.github.io # <gh-username>/<repo>
+    repo_id: R_kgDOMjulOQ
     category: Announcements
-    category_id: DIC_kwDOMmtsoc4Ch2A4
+    category_id: DIC_kwDOMjulOc4Ch-z1
     mapping: pathname # optional, default to 'pathname'
     strict: 0 # optional, default to '0'
     input_position: bottom # optional, default to 'bottom'
