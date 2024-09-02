@@ -50,6 +50,29 @@ yes, here i selected cortex a53 as target. add several cmake files:
 cmake/aarch64-linux-gnu.cmake
 cmake/cortex_a53.cmake
 ports/cortex_a53/gnu/CMakeLists.txt
+<details>
+<summary>click to expand/collapse</summary>
+target_sources(${PROJECT_NAME} PRIVATE
+    # {{BEGIN_TARGET_SOURCES}}
+	${CMAKE_CURRENT_LIST_DIR}/src/tx_initialize_low_level.S
+	${CMAKE_CURRENT_LIST_DIR}/src/tx_thread_context_restore.S
+	${CMAKE_CURRENT_LIST_DIR}/src/tx_thread_context_save.S
+	${CMAKE_CURRENT_LIST_DIR}/src/tx_thread_fp_disable.c
+	${CMAKE_CURRENT_LIST_DIR}/src/tx_thread_fp_enable.c
+	${CMAKE_CURRENT_LIST_DIR}/src/tx_thread_interrupt_control.S
+	${CMAKE_CURRENT_LIST_DIR}/src/tx_thread_interrupt_disable.S
+	${CMAKE_CURRENT_LIST_DIR}/src/tx_thread_interrupt_restore.S
+	${CMAKE_CURRENT_LIST_DIR}/src/tx_thread_schedule.S
+	${CMAKE_CURRENT_LIST_DIR}/src/tx_thread_stack_build.S
+	${CMAKE_CURRENT_LIST_DIR}/src/tx_thread_system_return.S
+	${CMAKE_CURRENT_LIST_DIR}/src/tx_timer_interrupt.S
+    # {{END_TARGET_SOURCES}}
+)
+
+target_include_directories(${PROJECT_NAME} PUBLIC
+    ${CMAKE_CURRENT_LIST_DIR}/inc
+)
+<details>
 ```
 
 (for detailed information, please refer to <https://github.com/tw-embedded/threadx/commit/4799a3ebcb08bb2d56d5cf94e6627a836e0adf8a>)
