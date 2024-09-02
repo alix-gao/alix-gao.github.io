@@ -21,7 +21,7 @@ QNX is primarily used in the automotive sector and is a closed-source operating 
 ## prerequisites
 in the development environment, I used QEMU to emulate one board, and the board's SoC adopts an ARM multi-core processor. using QEMU is flexible, low-cost, convenient for debugging (the most important aspect), and easy to promote (users don't need to purchase a development board).
 
-all the reference implementation: https://github.com/tw-embedded/baize-board
+all the reference implementation: <https://github.com/tw-embedded/baize-board>
 
 ## whole architecture
 ![architecture image](../assets/2024.08/picture1.png)
@@ -52,7 +52,7 @@ cmake/cortex_a53.cmake
 ports/cortex_a53/gnu/CMakeLists.txt
 ```
 
-(for detailed information, please refer to https://github.com/tw-embedded/threadx/commit/4799a3ebcb08bb2d56d5cf94e6627a836e0adf8a)
+(for detailed information, please refer to <https://github.com/tw-embedded/threadx/commit/4799a3ebcb08bb2d56d5cf94e6627a836e0adf8a>)
 
 execute the following commands to build threadx:
 
