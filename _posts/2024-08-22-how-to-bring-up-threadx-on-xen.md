@@ -37,6 +37,29 @@ EL2: used for hypervisors in virtualization scenarios.
 EL3: the highest privilege level, usually for secure monitor code and system management.
 
 ## all steps
+### step 1: build threadx project
+after cloning the project repository, create a new build folder for porting to xen:
+
+```bash
+cp -r ./ports/cortex_a53/gnu/example_build ./ports/cortex_a53/gnu/xen_build
+```
+
+yes, here i selected cortex a53 as target. add several cmake files:
+
+```diff
+cmake/aarch64-linux-gnu.cmake
+cmake/cortex_a53.cmake
+ports/cortex_a53/gnu/CMakeLists.txt
+```
+
+(for detailed information, please refer to https://github.com/tw-embedded/threadx/commit/4799a3ebcb08bb2d56d5cf94e6627a836e0adf8a)
+
+execute the following commands to build threadx:
+
+```bash
+cmake -Bbuild -GNinja -DCMAKE_TOOLCHAIN_FILE=cmake/cortex_a53.cmake
+cmake --build ./build
+```
 
 ## conclusion
 
@@ -44,4 +67,3 @@ EL3: the highest privilege level, usually for secure monitor code and system man
 enable smp for threadx
 
 guix
-
