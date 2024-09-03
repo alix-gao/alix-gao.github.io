@@ -77,13 +77,13 @@ ports/cortex_a53/gnu/CMakeLists.txt
 +    ${CMAKE_CURRENT_LIST_DIR}/inc
 +)
 
-<details>
+</details>
 
 ```
 
 (for detailed information, please refer to <https://github.com/tw-embedded/threadx/commit/4799a3ebcb08bb2d56d5cf94e6627a836e0adf8a>)
 
-<details>
+</details>
 
 execute the following commands to build threadx:
 
