@@ -44,7 +44,7 @@ after cloning the project repository, create a new build folder for porting to x
 cp -r ./ports/cortex_a53/gnu/example_build ./ports/cortex_a53/gnu/xen_build
 ```
 
-yes, here i selected cortex a53 as target. add several cmake files:
+yes, here i selected cortex a53 as target. added several cmake files:
 
 ```diff
 cmake/aarch64-linux-gnu.cmake
