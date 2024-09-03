@@ -53,7 +53,6 @@ yes, here i selected cortex a53 as target. add several cmake files:
 cmake/aarch64-linux-gnu.cmake
 cmake/cortex_a53.cmake
 ports/cortex_a53/gnu/CMakeLists.txt
-
 +target_sources(${PROJECT_NAME} PRIVATE
 +	${CMAKE_CURRENT_LIST_DIR}/src/tx_initialize_low_level.S
 +	${CMAKE_CURRENT_LIST_DIR}/src/tx_thread_context_restore.S
@@ -72,9 +71,7 @@ ports/cortex_a53/gnu/CMakeLists.txt
 +target_include_directories(${PROJECT_NAME} PUBLIC
 +    ${CMAKE_CURRENT_LIST_DIR}/inc
 +)
-```
-
-</details>
+</details>```
 
 execute the following commands to build threadx:
 
