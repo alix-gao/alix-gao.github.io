@@ -152,7 +152,7 @@ build/ports/cortex_a53/gnu/threadxen.elf: ELF 64-bit LSB executable, ARM aarch64
 
 ### step 2: update device tree of xen
 
-```dts
+```c
 		cp_threadx: cpupool1 {
 			compatible = "xen,cpupool";
 			cpupool-cpus = <&cpu7>;
@@ -175,6 +175,7 @@ build/ports/cortex_a53/gnu/threadxen.elf: ELF 64-bit LSB executable, ARM aarch64
 			};
 		};
 ```
+
 here, i have allocated one CPU for threadx, which means that threadx does not need to support SMP for the time being.
 the memory available to threadx is very limited, with only 0x10000 bytes.
 additionally, threadx is being booted in a typical dom0-less configuration.
