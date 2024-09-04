@@ -159,7 +159,7 @@ build/ports/cortex_a53/gnu/threadxen.elf: ELF 64-bit LSB executable, ARM aarch64
 			cpupool-sched = "null";
 		};
 		...
-        domus {
+		domus {
 			compatible = "xen,domain";
 			#address-cells = <2>;
 			#size-cells = <2>;
