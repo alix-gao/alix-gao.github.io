@@ -35,7 +35,9 @@ EL2: used for hypervisors in virtualization scenarios.
 EL3: the highest privilege level, usually for secure monitor code and system management.
 
 ## all steps
-### step 1: build threadx project
+
+### step 1. build threadx project
+
 after cloning the project repository, create a new build folder for porting to xen:
 
 ```bash
@@ -150,7 +152,7 @@ CMakeFiles  cmake_install.cmake  threadxen  threadxen.elf
 build/ports/cortex_a53/gnu/threadxen.elf: ELF 64-bit LSB executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-aarch64.so.1, for GNU/Linux 3.7.0, BuildID[sha1]=40e3d7911d897c77c80c2058d9aadf4d99843761, not stripped
 ```
 
-### step 2: update device tree of xen
+### step 2. update device tree of xen
 
 ```c
 		cp_threadx: cpupool1 {
@@ -179,6 +181,17 @@ build/ports/cortex_a53/gnu/threadxen.elf: ELF 64-bit LSB executable, ARM aarch64
 here, i have allocated one CPU for threadx, which means that threadx does not need to support SMP for the time being.
 the memory available to threadx is very limited, with only 0x10000 bytes.
 additionally, threadx is being booted in a typical dom0-less configuration.
+
+### step 3. boot threadx
+
+as expected, the boot failed.
+
+![boot image](../assets/2024.08/s1.png)
+
+```c
+(XEN) *** LOADING DOMU cpus=1 memory=10000KB ***
+(XEN) Loading d1 kernel from boot module @ 0000000127aaa000
+```
 
 ## conclusion
 
