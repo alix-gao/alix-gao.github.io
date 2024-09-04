@@ -1,11 +1,9 @@
 ---
-title: "how to bring up threadx on xen"
+title: "how to bring up threadx on xen (writing)"
 date: 2024-08-22
 categories: [blog, embedded]
 tags: [threadx, xen]
 ---
-
-# still writing ...
 
 ## what are xen & threadx?
 [xen](https://xenproject.org) is a type-I hypervisor, [threadx](https://threadx.io) is a RTOS.
@@ -41,7 +39,7 @@ EL3: the highest privilege level, usually for secure monitor code and system man
 after cloning the project repository, create a new build folder for porting to xen:
 
 ```bash
-cp -r ./ports/cortex_a53/gnu/example_build ./ports/cortex_a53/gnu/xen_build
+cp -r ./ports/cortex_a53/gnu/example_build/sample_threadx ./ports/cortex_a53/gnu/xen_build
 ```
 
 yes, here i selected cortex a53 as target. added several cmake files:
@@ -107,6 +105,33 @@ ports/cortex_a53/gnu/CMakeLists.txt
 +target_include_directories(${PROJECT_NAME} PUBLIC
 +    ${CMAKE_CURRENT_LIST_DIR}/inc
 +)
++
++set(APP_NAME threadxen)
++set(EXE_NAME ${APP_NAME}.elf)
++set(LDS ${CMAKE_CURRENT_LIST_DIR}/xen_build/threadx.ld)
++add_executable(${EXE_NAME})
++target_link_libraries(${EXE_NAME} ${PROJECT_NAME})
++target_link_options(${EXE_NAME} PRIVATE -T ${LDS})
++target_sources(${EXE_NAME} PRIVATE
++    # {{BEGIN_TARGET_SOURCES}}
++       ${CMAKE_CURRENT_LIST_DIR}/xen_build/main.c
++       ${CMAKE_CURRENT_LIST_DIR}/xen_build/gicv3_gicd.c
++       ${CMAKE_CURRENT_LIST_DIR}/xen_build/gicv3_gicr.c
++       ${CMAKE_CURRENT_LIST_DIR}/xen_build/sp804_timer.c
++       ${CMAKE_CURRENT_LIST_DIR}/xen_build/timer_interrupts.c
++       ${CMAKE_CURRENT_LIST_DIR}/xen_build/mp_mutexes.s
++       ${CMAKE_CURRENT_LIST_DIR}/xen_build/startup.s
++       ${CMAKE_CURRENT_LIST_DIR}/xen_build/v8_aarch64.s
++       ${CMAKE_CURRENT_LIST_DIR}/xen_build/v8_utils.s
++       ${CMAKE_CURRENT_LIST_DIR}/xen_build/vectors.s
++       ${CMAKE_CURRENT_LIST_DIR}/xen_build/pecoff.s
++    # {{END_TARGET_SOURCES}}
++)
++add_custom_command(
++    TARGET ${EXE_NAME}
++    POST_BUILD
++    COMMAND ${CMAKE_OBJCOPY} ${EXE_NAME} -O binary ${APP_NAME}
++)
 ```
 
 execute the following commands to build threadx:
@@ -114,6 +139,15 @@ execute the following commands to build threadx:
 ```bash
 cmake -Bbuild -GNinja -DCMAKE_TOOLCHAIN_FILE=cmake/cortex_a53.cmake
 cmake --build ./build
+```
+
+the binary file is in the folder:
+
+```bash
+➜  threadx git:(c349997) ls build/ports/cortex_a53/gnu
+CMakeFiles  cmake_install.cmake  threadxen
+➜  threadx git:(c349997) file build/ports/cortex_a53/gnu/threadxen
+build/ports/cortex_a53/gnu/threadxen: ELF 64-bit LSB executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-aarch64.so.1, for GNU/Linux 3.7.0, BuildID[sha1]=40e3d7911d897c77c80c2058d9aadf4d99843761, not stripped
 ```
 
 ## conclusion
