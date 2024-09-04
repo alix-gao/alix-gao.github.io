@@ -154,7 +154,7 @@ build/ports/cortex_a53/gnu/threadxen.elf: ELF 64-bit LSB executable, ARM aarch64
 
 ### step 2. update device tree of xen
 
-```c
+```text
 		cp_threadx: cpupool1 {
 			compatible = "xen,cpupool";
 			cpupool-cpus = <&cpu7>;
@@ -188,7 +188,7 @@ as expected, the boot failed.
 
 ![boot image](../assets/2024.08/s1.png)
 
-```c
+```text
 (XEN) *** LOADING DOMU cpus=1 memory=10000KB ***
 (XEN) Loading d1 kernel from boot module @ 0000000127aaa000
 ```
