@@ -145,10 +145,39 @@ the binary file is in the folder:
 
 ```bash
 ➜  threadx git:(c349997) ls build/ports/cortex_a53/gnu
-CMakeFiles  cmake_install.cmake  threadxen
-➜  threadx git:(c349997) file build/ports/cortex_a53/gnu/threadxen
-build/ports/cortex_a53/gnu/threadxen: ELF 64-bit LSB executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-aarch64.so.1, for GNU/Linux 3.7.0, BuildID[sha1]=40e3d7911d897c77c80c2058d9aadf4d99843761, not stripped
+CMakeFiles  cmake_install.cmake  threadxen  threadxen.elf
+➜  threadx git:(c349997) file build/ports/cortex_a53/gnu/threadxen.elf
+build/ports/cortex_a53/gnu/threadxen.elf: ELF 64-bit LSB executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-aarch64.so.1, for GNU/Linux 3.7.0, BuildID[sha1]=40e3d7911d897c77c80c2058d9aadf4d99843761, not stripped
 ```
+
+### step 2: update device tree of xen
+
+```dts
+		cp_threadx: cpupool1 {
+			compatible = "xen,cpupool";
+			cpupool-cpus = <&cpu7>;
+			cpupool-sched = "null";
+		};
+		...
+        domus {
+			compatible = "xen,domain";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			cpus = <1>;
+			memory = <0 0x10000>;
+			vpl011;
+			domain-cpupool = <&cp_threadx>;
+
+			module@1 {
+				compatible = "multiboot,kernel", "multiboot,module";
+				xen,uefi-binary = "threadxen";
+				bootargs = "console=ttyAMA0";
+			};
+		};
+```
+here, i have allocated one CPU for threadx, which means that threadx does not need to support SMP for the time being.
+the memory available to threadx is very limited, with only 0x10000 bytes.
+additionally, threadx is being booted in a typical dom0-less configuration.
 
 ## conclusion
 
