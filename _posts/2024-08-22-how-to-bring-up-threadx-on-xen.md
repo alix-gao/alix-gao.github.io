@@ -1,5 +1,5 @@
 ---
-title: "how to bring up threadx on xen (writing)"
+title: "how to bring up threadx on xen (still writing)"
 date: 2024-08-22
 categories: [blog, embedded]
 tags: [threadx, xen]
