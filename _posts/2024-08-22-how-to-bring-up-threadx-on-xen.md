@@ -197,7 +197,7 @@ review the most recent non-failing logs and trace them back to the corresponding
 
 it is in the `kernel_probe` function.
 
-![boot image](../assets/2024.08/s2.png)
+![image](../assets/2024.08/s2.png)
 
 the threadx image is neither a uImage nor 32-bit, so we should next examine the `kernel_zimage64_probe` function.
 
@@ -231,12 +231,26 @@ static int __init kernel_zimage64_probe(struct kernel_info *info,
         return -EINVAL;
 ```
 
-first, `kernel_zimage64_probe` checks the magic number, the macros are defined:
+`kernel_zimage64_probe` checks the magic number, the macros are defined:
 
 ```c
 #define ZIMAGE64_MAGIC_V0 0x14000008
 #define ZIMAGE64_MAGIC_V1 0x644d5241 /* "ARM\x64" */
 ```
+
+open the documentation in the comment of the kernel_zimage64_probe function:
+
+![image](../assets/2024.08/s3.png)
+
+check the header of linux kernel image layout:
+
+![image](../assets/2024.08/s4.png)
+
+clearly, the linux image header contains a pe-format header. the threadx image needs it also.
+
+### step 4. add pecoff (Portable Executable and Common Object File Format) header
+
+pecoff (Portable Executable/Common Object File Format) is the file format used by Microsoft Windows for executable files, dynamic link libraries, and object files, extending the common object file format (COFF) with additional features specific to Windows.
 
 ## conclusion
 
