@@ -199,6 +199,45 @@ it is in the `kernel_probe` function.
 
 ![boot image](../assets/2024.08/s2.png)
 
+the threadx image is neither a uImage nor 32-bit, so we should next examine the `kernel_zimage64_probe` function.
+
+```c
+static int __init kernel_zimage64_probe(struct kernel_info *info,
+                                        paddr_t addr, paddr_t size)
+{
+    /* linux/Documentation/arm64/booting.txt */
+    struct {
+        uint32_t magic0;
+        uint32_t res0;
+        uint64_t text_offset;  /* Image load offset */
+        uint64_t res1;
+        uint64_t res2;
+        /* zImage V1 only from here */
+        uint64_t res3;
+        uint64_t res4;
+        uint64_t res5;
+        uint32_t magic1;
+        uint32_t res6;
+    } zimage;
+    uint64_t start, end;
+
+    if ( size < sizeof(zimage) )
+        return -EINVAL;
+
+    copy_from_paddr(&zimage, addr, sizeof(zimage));
+
+    if ( zimage.magic0 != ZIMAGE64_MAGIC_V0 &&
+         zimage.magic1 != ZIMAGE64_MAGIC_V1 )
+        return -EINVAL;
+```
+
+first, `kernel_zimage64_probe` checks the magic number, the macros are defined:
+
+```c
+#define ZIMAGE64_MAGIC_V0 0x14000008
+#define ZIMAGE64_MAGIC_V1 0x644d5241 /* "ARM\x64" */
+```
+
 ## conclusion
 
 ## future
