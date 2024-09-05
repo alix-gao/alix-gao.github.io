@@ -188,10 +188,16 @@ as expected, the boot failed.
 
 ![boot image](../assets/2024.08/s1.png)
 
+review the most recent non-failing logs and trace them back to the corresponding code。
+
 ```text
 (XEN) *** LOADING DOMU cpus=1 memory=10000KB ***
 (XEN) Loading d1 kernel from boot module @ 0000000127aaa000
 ```
+
+it is in the `kernel_probe` function.
+
+![boot image](../assets/2024.08/s2.png)
 
 ## conclusion
 
