@@ -246,6 +246,13 @@ check the header of linux kernel image layout:
 
 ![image](../assets/2024.08/s4.png)
 
+check the file format of linux kernel image:
+
+```bash
+➜  linux git:(6a77b390) file ./build/arch/arm64/boot/Image
+Image: MS-DOS executable PE32+ executable (EFI application) Aarch64 (stripped to external PDB), for MS Windows
+```
+
 clearly, the linux image header contains a pe-format header. the threadx image needs it also.
 
 ### step 4. add pecoff (Portable Executable and Common Object File Format) header
