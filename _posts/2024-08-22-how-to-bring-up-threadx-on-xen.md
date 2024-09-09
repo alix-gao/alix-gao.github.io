@@ -195,7 +195,7 @@ review the most recent non-failing logs and trace them back to the corresponding
 (XEN) Loading d1 kernel from boot module @ 0000000127aaa000
 ```
 
-it is in the `kernel_probe` function.
+it is in the `kernel_probe` function of xen.
 
 ![image](../assets/2024.08/s2.png)
 
@@ -277,7 +277,11 @@ SECTIONS
 
 ### step 5. boot threadx
 
-as expected, the boot failed.
+no obvious error logs.
+
+![image](../assets/2024.08/s5.png)
+
+start debugging.
 
 ## conclusion
 
