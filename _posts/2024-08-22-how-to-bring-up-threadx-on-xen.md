@@ -259,6 +259,26 @@ clearly, the linux image header contains a pe-format header. the threadx image n
 
 pecoff (Portable Executable/Common Object File Format) is the file format used by Microsoft Windows for executable files, dynamic link libraries, and object files, extending the common object file format (COFF) with additional features specific to Windows.
 
+first, add a new file [threadx/ports/cortex_a53/gnu/xen_build/pecoff.s](https://github.com/tw-embedded/threadx/blob/master/ports/cortex_a53/gnu/xen_build/pecoff.s) and include it in the build process.
+
+second, add pecoff section to the start of the image.
+
+```diff
+threadx/ports/cortex_a53/gnu/xen_build/threadx.ld
+ENTRY(_threadxen_start)
+SECTIONS
+{
+    . = 0x10000000; /* THREADXEN_VA */
+    _threadxen_start = .;
++    .pecoff : {
++        KEEP(*(.pecoff))
++    }
+```
+
+### step 5. boot threadx
+
+as expected, the boot failed.
+
 ## conclusion
 
 ## future
