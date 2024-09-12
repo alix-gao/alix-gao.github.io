@@ -353,7 +353,7 @@ clearly, this instruction is the first instruction of the pecoff header we added
 
 ![image](../assets/2024.08/s10.png)
 
-step-by-step debugging, the threadx vm crashed because it attempts to access the EL3 register (the default threadx example code is started from bare-metal), while threadx is running in EL1 in the current system.
+debugging, the threadx vm crashed because it attempts to access the EL3 register (the default threadx example code is started from bare-metal), while threadx is running in EL1 in the current system.
 
 modify the jump address to el1_entry_aarch64 in the pecoff header:
 
@@ -378,12 +378,11 @@ from boot log, the physical address of threadx vm is 0x40000000.
 ```diff
 ports/cortex_a53/gnu/xen_build/threadx.ld
 +   . = 0x40000000; /* THREADXEN_VA */
+-   . = 0x80000000; /* THREADXEN_VA */
     _threadxen_start = .;
     .pecoff : {
         KEEP(*(.pecoff))
     }
-+   .vectors 0x40001000:
--   .vectors 0x80000000:
 ```
 
 rebuild threadx and restart debugging.
@@ -416,7 +415,7 @@ ports/cortex_a53/gnu/xen_build/threadx.ld
     }
 ```
 
-it means 0x2f000000 is the physical address of gicd, of course, it need to be updated.
+so 0x2f000000 is the physical address of gicd, of course, it need to be updated.
 
 ### step 7. update gic address space
 
