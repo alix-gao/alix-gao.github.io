@@ -281,7 +281,69 @@ no obvious error logs.
 
 ![image](../assets/2024.08/s5.png)
 
+the kernel_probe function has finished executing (confirm this through step-by-step debugging).
+
+next, verify the subsequent execution flow: kernel_probe() ->construct_domU() -> create_domUs() -> start_xen()
+
+arrive at the key function start_xen:
+
+```c
+/* C entry point for boot CPU */
+void __init start_xen(unsigned long boot_phys_offset,
+                      unsigned long fdt_paddr)
+{
+    ...
+
+    if ( acpi_disabled )
+    {
+        create_domUs();
+        alloc_static_evtchn();
+    }
+
+    /*
+     * This needs to be called **before** heap_init_late() so modules
+     * will be scrubbed (unless suppressed).
+     */
+    discard_initial_modules();
+
+    heap_init_late();
+
+    init_trace_bufs();
+
+    init_constructors();
+
+    console_endboot();
+
+    /* Hide UART from DOM0 if we're using it */
+    serial_endboot();
+
+    if ( (rc = xsm_set_system_active()) != 0 )
+        panic("xsm: unable to switch to SYSTEM_ACTIVE privilege: %d\n", rc);
+
+    system_state = SYS_STATE_active;
+
+    for_each_domain( d )
+        domain_unpause_by_systemcontroller(d);
+
+    /* Switch on to the dynamically allocated stack for the idle vcpu
+     * since the static one we're running on is about to be freed. */
+    memcpy(idle_vcpu[0]->arch.cpu_info, get_cpu_info(),
+           sizeof(struct cpu_info));
+    switch_stack_and_jump(idle_vcpu[0]->arch.cpu_info, init_done);
+}
+```
+
+final stack switch and jump, and single-step debugging confirms execution reaches this point.
+
+![image](../assets/2024.08/s6.png)
+
+the boot address of the virtual machine can be found in the logs:
+
+![image](../assets/2024.08/s7.png)
+
 start debugging.
+
+
 
 ## conclusion
 
