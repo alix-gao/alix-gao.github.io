@@ -283,7 +283,7 @@ no obvious error logs.
 
 the kernel_probe function has finished executing (confirm this through step-by-step debugging).
 
-next, verify the subsequent execution flow: kernel_probe() ->construct_domU() -> create_domUs() -> start_xen()
+next, verify the subsequent execution flow: kernel_probe() -> construct_domU() -> create_domUs() -> start_xen()
 
 arrive at the key function start_xen:
 
@@ -341,9 +341,15 @@ the boot address of the virtual machine can be found in the logs:
 
 ![image](../assets/2024.08/s7.png)
 
-start debugging.
+set a breakpoint:
 
+![image](../assets/2024.08/s8.png)
 
+GDB stopped at the breakpoint:
+
+![image](../assets/2024.08/s9.png)
+
+clearly, this instruction is the first instruction of the pecoff header we added.
 
 ## conclusion
 
