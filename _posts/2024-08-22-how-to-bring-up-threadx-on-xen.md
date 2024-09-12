@@ -351,6 +351,20 @@ GDB stopped at the breakpoint:
 
 clearly, this instruction is the first instruction of the pecoff header we added.
 
+![image](../assets/2024.08/s10.png)
+
+step-by-step debugging, the threadx vm crashed because it attempts to access the EL3 register (the default threadx example code is started from bare-metal), while threadx is running in EL1 in the current system.
+
+modify the jump address to el1_entry_aarch64 in the pecoff header:
+
+![image](../assets/2024.08/s11.png)
+
+### step 6. debug el1_entry_aarch64
+
+step-by-step debugging, it trapped in hypervisor:
+
+![image](../assets/2024.08/s12.png)
+
 ## conclusion
 
 ## future
