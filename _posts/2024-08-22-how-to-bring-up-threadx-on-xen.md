@@ -359,13 +359,70 @@ modify the jump address to el1_entry_aarch64 in the pecoff header:
 
 ![image](../assets/2024.08/s11.png)
 
-### step 6. debug el1_entry_aarch64
-
 step-by-step debugging, it trapped in hypervisor:
 
 ![image](../assets/2024.08/s12.png)
 
+here, 0x80054e30 is program address. obviously, the address accessed by function EnableGICD exceeds the range allocated by xen.
+
+hence, it causes a trap into the hypervisor xen.
+
+### step 6. update memory layout of threadx
+
+threadx calls the function EnableGICD directly in sample startup.s before initializing the MMU, so the implicit information is that the virtual addresses and physical addresses are the same in the memory layout.
+
+it is not perfect, but just follow it now.
+
+from boot log, the physical address of threadx vm is 0x40000000.
+
+```diff
+ports/cortex_a53/gnu/xen_build/threadx.ld
++   . = 0x40000000; /* THREADXEN_VA */
+    _threadxen_start = .;
+    .pecoff : {
+        KEEP(*(.pecoff))
+    }
++   .vectors 0x40001000:
+-   .vectors 0x80000000:
+```
+
+rebuild threadx and restart debugging.
+
+EnableGICD still caused a trap:
+
+![image](../assets/2024.08/s13.png)
+
+check the source of EnableGICD:
+
+```c
+GICv3_distributor __attribute__((section(".gicd"))) gicd;
+
+void EnableGICD(GICDCTLRFlags_t flags)
+{
+    gicd.GICD_CTLR |= flags;
+}
+```
+
+check the .gicd section in lds:
+
+```text
+ports/cortex_a53/gnu/xen_build/threadx.ld
+    /*
+     * GICv3 distributor
+     */
+    .gicd 0x2f000000 (NOLOAD):
+    {
+        *(.gicd)
+    }
+```
+
+it means 0x2f000000 is the physical address of gicd, of course, it need to be updated.
+
+### step 7. update gic address space
+
 ## conclusion
+
+nothing
 
 ## future
 enable smp for threadx
