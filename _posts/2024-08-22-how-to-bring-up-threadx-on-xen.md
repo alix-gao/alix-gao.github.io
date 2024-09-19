@@ -76,6 +76,7 @@ cmake/aarch64-linux-gnu.cmake
 +SET(CMAKE_C_FLAGS_RELEASE "-O3" CACHE INTERNAL "c release compiler flags")
 +SET(CMAKE_CXX_FLAGS_RELEASE "-O3" CACHE INTERNAL "cxx release compiler flags")
 +SET(CMAKE_ASM_FLAGS_RELEASE "" CACHE INTERNAL "asm release compiler flags")
+
 cmake/cortex_a53.cmake
 +set(CMAKE_SYSTEM_NAME Generic)
 +set(CMAKE_SYSTEM_PROCESSOR cortex-a53)
@@ -85,9 +86,9 @@ cmake/cortex_a53.cmake
 +
 +set(MCPU_FLAGS "-mcpu=cortex-a53")
 +set(VFP_FLAGS "")
-+set(LD_FLAGS "-nostartfiles")
 +
 +include(${CMAKE_CURRENT_LIST_DIR}/aarch64-linux-gnu.cmake)
+
 ports/cortex_a53/gnu/CMakeLists.txt
 +target_sources(${PROJECT_NAME} PRIVATE
 +    ${CMAKE_CURRENT_LIST_DIR}/src/tx_initialize_low_level.S
@@ -558,6 +559,34 @@ threadx/ports/cortex_a53/gnu/xen_build/threadx.ld
     {
         *(.gicr)
     }
+```
+
+after updated the gic address, the function EnableGICD can complete execution.
+
+### step 8. go to main
+
+upon continuing execution, a crash is still encountered before main.
+
+the instruction that caused the crash is a call to memset.
+
+![image](../assets/2024.08/s14.png)
+
+of course PLT (Procedure Linkage Table) could not be used here.
+
+i added one simple libc ([rtos/libc](https://github.com/tw-embedded/baize-board/tree/master/rtos/libc)) for threadx to solve this issue.
+
+disable the standard libraries and startup files.
+
+```diff
+cmake/aarch64-linux-gnu.cmake
+-set(CMAKE_C_FLAGS   "${MCPU_FLAGS} ${VFP_FLAGS} ${SPEC_FLAGS} -fdata-sections -ffunction-sections" CACHE INTERNAL "c compiler flags")
++set(CMAKE_C_FLAGS   "${MCPU_FLAGS} ${VFP_FLAGS} ${SPEC_FLAGS} -nostdlib -fdata-sections -ffunction-sections" CACHE INTERNAL "c compiler flags")
+
+cmake/cortex_a53.cmake
++set(LD_FLAGS "-nostartfiles")
+
+ports/cortex_a53/gnu/CMakeLists.txt
++target_link_libraries(${APP_NAME} ${CMAKE_SOURCE_DIR}/../libc/build/libc.a)
 ```
 
 ## conclusion
