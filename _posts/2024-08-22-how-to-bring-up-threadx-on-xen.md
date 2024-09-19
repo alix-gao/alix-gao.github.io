@@ -664,7 +664,7 @@ yes, it is!
 
 i want to use printf but HYPERVISOR_console_io.
 
-```c
+```diff
 ports/cortex_a53/gnu/CMakeLists.txt
 +${CMAKE_CURRENT_LIST_DIR}/xen_build/putc.c
 
