@@ -658,6 +658,57 @@ try to print something:
 
 ![image](../assets/2024.08/s15.png)
 
+yes, it is!
+
+![image](../assets/2024.08/s16.png)
+
+i want to use printf but HYPERVISOR_console_io.
+
+```c
+ports/cortex_a53/gnu/CMakeLists.txt
++${CMAKE_CURRENT_LIST_DIR}/xen_build/putc.c
+
+ports/cortex_a53/gnu/xen_build/putc.c
++#include <stdint.h>
++#include <stddef.h>
++
++#define CONSOLEIO_write 0
++void HYPERVISOR_console_io(int no, size_t size, uint8_t *str);
++
++int console_putc(unsigned char c)
++{
++	HYPERVISOR_console_io(CONSOLEIO_write, 1, &c);
++	return 1;
++}
+```
+
+now, printf works.
+
+### step 10. timer
+
+the main function is responsible for two tasks: initializing hardware (gic, timer) and starting threadx.
+
+```c
+int main(void)
+{
+    printf("threadx\n");
+
+    /* Initialize timer. */
+    init_timer();
+
+    /* Enter ThreadX. */
+    tx_kernel_enter();
+
+    return 0;
+}
+```
+
+since the gic has already been configured with the address space, now focus on the timer.
+
+timer is a core component of the os.
+
+by providing periodic interrupts, the os schedules tasks efficiently to achieve effective multitasking and system operation.
+
 ## conclusion
 
 nothing
