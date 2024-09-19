@@ -419,6 +419,145 @@ so 0x2f000000 is the physical address of gicd, of course, it need to be updated.
 
 ### step 7. update gic address space
 
+as we known, xen has interrupt virtualization capabilities.
+
+the GIC (Generic Interrupt Controller) operated within virtual machine (VM) is virtualized by xen, meaning the vm does not directly access the hardware GIC.
+
+interrupt requests are first received by xen, which then forwards these interrupts to the corresponding vm for handling.
+
+this allows xen to manage and allocate interrupts effectively, enabling efficient sharing and isolation of hardware resources in a multi-vm environment.
+
+the address space of gic is allocated by xen.
+
+check the gicd base from xen source:
+
+create_domUs(void)/construct_domU()/prepare_dtb_domU()/make_gic_domU_node()
+
+```c
+static int __init make_gic_domU_node(struct kernel_info *kinfo)
+{
+    switch ( kinfo->d->arch.vgic.version )
+    {
+#ifdef CONFIG_GICV3
+    case GIC_V3:
+        return make_gicv3_domU_node(kinfo);
+#endif
+    case GIC_V2:
+        return make_gicv2_domU_node(kinfo);
+    default:
+        panic("Unsupported GIC version\n");
+    }
+}
+```
+
+here, the SoC uses gic v3.
+
+```c
+static int __init make_gicv3_domU_node(struct kernel_info *kinfo)
+{
+    void *fdt = kinfo->fdt;
+    int res = 0;
+    __be32 *reg, *cells;
+    const struct domain *d = kinfo->d;
+    /* Placeholder for interrupt-controller@ + a 64-bit number + \0 */
+    char buf[38];
+    unsigned int i, len = 0;
+
+    snprintf(buf, sizeof(buf), "interrupt-controller@%"PRIx64,
+             vgic_dist_base(&d->arch.vgic));
+
+    res = fdt_begin_node(fdt, buf);
+    if ( res )
+        return res;
+
+    res = fdt_property_cell(fdt, "#address-cells", 0);
+    if ( res )
+        return res;
+
+    res = fdt_property_cell(fdt, "#interrupt-cells", 3);
+    if ( res )
+        return res;
+
+    res = fdt_property(fdt, "interrupt-controller", NULL, 0);
+    if ( res )
+        return res;
+
+    res = fdt_property_string(fdt, "compatible", "arm,gic-v3");
+    if ( res )
+        return res;
+
+    /* reg specifies all re-distributors and Distributor. */
+    len = (GUEST_ROOT_ADDRESS_CELLS + GUEST_ROOT_SIZE_CELLS) *
+          (d->arch.vgic.nr_regions + 1) * sizeof(__be32);
+    reg = xmalloc_bytes(len);
+    if ( reg == NULL )
+        return -ENOMEM;
+    cells = reg;
+
+    dt_child_set_range(&cells, GUEST_ROOT_ADDRESS_CELLS, GUEST_ROOT_SIZE_CELLS,
+                       vgic_dist_base(&d->arch.vgic), GUEST_GICV3_GICD_SIZE);
+
+    for ( i = 0; i < d->arch.vgic.nr_regions; i++ )
+        dt_child_set_range(&cells,
+                           GUEST_ROOT_ADDRESS_CELLS, GUEST_ROOT_SIZE_CELLS,
+                           d->arch.vgic.rdist_regions[i].base,
+                           d->arch.vgic.rdist_regions[i].size);
+
+    res = fdt_property(fdt, "reg", reg, len);
+    xfree(reg);
+    if (res)
+        return res;
+
+    res = fdt_property_cell(fdt, "linux,phandle", kinfo->phandle_gic);
+    if (res)
+        return res;
+
+    res = fdt_property_cell(fdt, "phandle", kinfo->phandle_gic);
+    if (res)
+        return res;
+
+    res = fdt_end_node(fdt);
+
+    return res;
+}
+```
+
+**xen passes hardware information to the vm through the device tree.**
+
+here, i temporarily hardcoded the gic address into the threadx source code but support device trees.
+
+to confirm the addresses of the gic-v3 related registers, continue reading the source code, use GDB for debugging, or add print statements.
+
+ultimately, the gic address information obtained is as follows:
+
+gicd base 0x3001000
+
+gicr base 0x3020000, size 0x1000000
+
+then hardcode these addresses:
+
+```diff
+threadx/ports/cortex_a53/gnu/xen_build/threadx.ld
+    /*
+     * GICv3 distributor
+     */
+-   .gicd 0x2f000000 (NOLOAD):
++   .gicd 0x3001000 (NOLOAD):
+    {
+        *(.gicd)
+    }
+
+    /*
+     * GICv3 redistributors
+     * 128KB for each redistributor in the system
+     */
+-   .gicr 0x2f100000 (NOLOAD):
++   .gicr 0x3020000 (NOLOAD):
+    {
+        *(.gicr)
+    }
+```
+
 ## conclusion
 
 nothing
