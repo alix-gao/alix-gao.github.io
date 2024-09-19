@@ -530,9 +530,11 @@ to confirm the addresses of the gic-v3 related registers, continue reading the s
 
 ultimately, the gic address information obtained is as follows:
 
+```text
 gicd base 0x3001000
 
 gicr base 0x3020000, size 0x1000000
+```
 
 then hardcode these addresses:
 
