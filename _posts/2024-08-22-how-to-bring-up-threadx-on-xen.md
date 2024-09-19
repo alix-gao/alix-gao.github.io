@@ -563,6 +563,8 @@ threadx/ports/cortex_a53/gnu/xen_build/threadx.ld
 
 after updated the gic address, the function EnableGICD can complete execution.
 
+TODO: how does xen implement interrupt virtualization?
+
 ### step 8. go to main
 
 upon continuing execution, a crash is still encountered before main.
@@ -588,6 +590,73 @@ cmake/cortex_a53.cmake
 ports/cortex_a53/gnu/CMakeLists.txt
 +target_link_libraries(${APP_NAME} ${CMAKE_SOURCE_DIR}/../libc/build/libc.a)
 ```
+
+finally, it comes the main function.
+
+### step 9. printf
+
+now we have entered the world of c language!
+
+being able to use printf is a good idea!
+
+linux must support early print on xen, so check linux source code:
+
+```c
+linux/drivers/tty/hvc/hvc_xen.c
+static int dom0_write_console(uint32_t vtermno, const char *str, int len)
+{
+	int rc = HYPERVISOR_console_io(CONSOLEIO_write, len, (char *)str);
+	if (rc < 0)
+		return rc;
+
+	return len;
+}
+static void xenboot_earlycon_write(struct console *console,
+				  const char *string,
+				  unsigned len)
+{
+	dom0_write_console(0, string, len);
+}
+
+static int __init xenboot_earlycon_setup(struct earlycon_device *device,
+					    const char *opt)
+{
+	device->con->write = xenboot_earlycon_write;
+	return 0;
+}
+EARLYCON_DECLARE(xenboot, xenboot_earlycon_setup);
+```
+
+HYPERVISOR_console_io is defined here:
+
+```c
+linux/arch/arm64/xen/hypercall.s
+
+#define XEN_IMM 0xEA1
+
+#define HYPERCALL_SIMPLE(hypercall)		\
+ENTRY(HYPERVISOR_##hypercall)			\
+	mov x16, #__HYPERVISOR_##hypercall;	\
+	hvc XEN_IMM;				\
+	ret;					\
+ENDPROC(HYPERVISOR_##hypercall)
+
+#define HYPERCALL3 HYPERCALL_SIMPLE
+
+HYPERCALL3(console_io);
+```
+
+obviously, the vm obtains xen's print services through a hypercall instruction.
+
+next, port this functionality to threadx.
+
+[ports/cortex_a53/gnu/xen_build/hypercall.s](https://github.com/tw-embedded/threadx/blob/master/ports/cortex_a53/gnu/xen_build/hypercall.s)
+
+[ports/cortex_a53/gnu/xen_build/xen.h](https://github.com/tw-embedded/threadx/blob/master/ports/cortex_a53/gnu/xen_build/xen.h)
+
+try to print something:
+
+![image](../assets/2024.08/s15.png)
 
 ## conclusion
 
