@@ -709,6 +709,22 @@ timer is a core component of the os.
 
 by providing periodic interrupts, the os schedules tasks efficiently to achieve effective multitasking and system operation.
 
+according to 'AArch64 Programmer's Guides - Generic Timer', arm-v8 includes the generic timer.
+
+the generic timer provides a standardized timer framework for arm cores.
+
+![image](../assets/2024.08/s17.png)
+
+the number of timers that a core provides (depends on which extensions are implemented):
+
+![image](../assets/2024.08/s18.png)
+
+the interrupt ID (INTID) that is used for each timer is defined by the Server Base System Architecture (SBSA), shown here:
+
+![image](../assets/2024.08/s19.png)
+
+TODO: add xen timer virtualization and debug the intid allocated by xen.
+
 ## conclusion
 
 nothing
