@@ -869,6 +869,16 @@ __tx_timer_no_time_slice:
 
 as mentioned before, xen passes hardware information to the vm through the device tree.
 
+in order to support device tree, i involved [dtc](https://github.com/dgibson/dtc).
+
+```diff
+ports/cortex_a53/gnu/CMakeLists.txt
+message(STATUS "find libc from ${CMAKE_SOURCE_DIR}")
+-target_link_libraries(${CMAKE_SOURCE_DIR}/../libc/build/libc.a)
++target_link_libraries(${EXE_NAME} ${CMAKE_SOURCE_DIR}/../dtc/libfdt/libfdt.a ${CMAKE_SOURCE_DIR}/../libc/build/libc.a)
+target_link_libraries(${EXE_NAME} ${PROJECT_NAME})
+```
+
 as we known, linux supports xen, so check the documentation of linux:
 
 ![image](../assets/2024.08/s28.png)
@@ -915,11 +925,18 @@ arg0:
 ports/cortex_a53/gnu/xen_build/main.c
 int main(int argc, char *argv[])
 {
-    void *device_tree;
++   void *device_tree;
 
     HYPERVISOR_console_io(CONSOLEIO_write, 8, "threadx\n");
 
 +   printf("main argc %d, argv %p\n", argc, argv[1]);
+
++   device_tree = argv[1];
++   if (fdt_check_header(device_tree)) {
++       printf("invalid dtb from xen\n");
++   } else {
++       printf("valid dtb pointer\n");
++   }
 ```
 
 after modification, run and check the console information:
@@ -929,6 +946,10 @@ after modification, run and check the console information:
 of course, it crashed because dtb address 0x43e00000 cannot be accessed in main.
 
 ![image](../assets/2024.08/s31.png)
+
+by reviewing the startup.s code before the main function, it can be seen that physical to virtual address mapping was performed and the MMU was enabled during startup. when executing el1_entry_aarch64, the dtb address space can be accessed because the MMU is disabled.
+
+### step 13. enable MMU
 
 ## conclusion
 
