@@ -271,9 +271,9 @@ SECTIONS
 {
     . = 0x10000000; /* THREADXEN_VA */
     _threadxen_start = .;
-+    .pecoff : {
-+        KEEP(*(.pecoff))
-+    }
++   .pecoff : {
++       KEEP(*(.pecoff))
++   }
 ```
 
 ### step 5. boot threadx
@@ -684,7 +684,7 @@ ports/cortex_a53/gnu/xen_build/putc.c
 
 now, printf works.
 
-### step 10. timer
+### step 10. add timer
 
 the main function is responsible for two tasks: initializing hardware (gic, timer) and starting threadx.
 
@@ -761,11 +761,35 @@ this means there is no need to configure gicr for timer interrupt.
 
 configuring the Arm GIC, refer to 'Arm Generic Interrupt Controller v3 and v4 Overview' section 5.
 
+at last, check the interrupt service routine:
+
+```c
+ports/cortex_a53/gnu/xen_build/startup.s
+start64:
+    // program the VBARs
+    ldr x1, =el1_vectors
+    msr VBAR_EL1, x1
+
+ports/cortex_a53/gnu/xen_build/vectors.s
+el1_vectors:
+c0sync1: B c0sync1
+
+    .balign 0x80
+c0irq1: B irqFirstLevelHandler
+......
+irqFirstLevelHandler:
+  MSR      SPSel, 0
+  STP      x29, x30, [sp, #-16]!
+  BL       _tx_thread_context_save
+  BL       irqHandler
+  B        _tx_thread_context_restore
+```
+
 #### 10.4 virtual timer configuration
 
 configuring the generic timer, refer to 'AArch64 Programmer's Guides - Generic Timer' section 3.3 & 3.4.
 
-
+### step 11. debug timer
 
 start debugging and enter the interrupt handler, where you can see that the INTID is 27, which is as expected:
 
@@ -776,6 +800,68 @@ single-step debugging, crash：
 ![image](../assets/2024.08/s23.png)
 
 check the source:
+
+![image](../assets/2024.08/s24.png)
+
+it is clear that the registers of EL3 are being operated here, and the modification plan is also very simple: add a compile-time macro switch EL1.
+
+![image](../assets/2024.08/s25.png)
+
+after modification, _tx_thread_context_save has finished executing, it is entering the irqHandler function.
+
+![image](../assets/2024.08/s26.png)
+
+function irqHandler is arranged in timer.c temporarily.
+
+```c
+ports/cortex_a53/gnu/xen_build/timer.c
+void irqHandler(void)
+{
+  unsigned int ID;
+
+  ID = getICC_IAR1();
+
+  switch (ID) {
+    case VIRTUAL_TIMER_IRQ:
+      handle_vtimer_interrupt();
+      _tx_timer_interrupt();
+      break;
+
+    default:
+      // unexpected ID value
+      printf("irqHandler() - Unexpected INTID %d\n\n", ID);
+      break;
+  }
+
+  // finished handling the interrupt
+  setICC_EOIR1(ID);
+}
+```
+
+continue to run, it crashed in _tx_timer_interrupt().
+
+![image](../assets/2024.08/s27.png)
+
+it is an address access error, null pointer. check the source code, when the vtimer interrupt arrives, global variable _tx_timer_current_ptr maybe null. so add a check:
+
+```diff
+ports/cortex_a53/gnu/src/tx_timer_interrupt.s
+__tx_timer_no_time_slice:
+
+    /* Test for timer expiration.  */
+    // if (*_tx_timer_current_ptr)
+    // {
+
+    LDR     x1, =_tx_timer_current_ptr          // Pickup current timer pointer addr
+    LDR     x0, [x1, #0]                        // Pickup current timer
++   CMP     x0, #0
++   BEQ     __tx_timer_nothing_expired
+    LDR     x2, [x0, #0]                        // Pickup timer list entry
+    CMP     x2, #0                              // Is there anything in the list?
+    BEQ     __tx_timer_no_timer                 // No, just increment the timer
+```
+
+### step 12. supporting dtb
 
 ## conclusion
 
