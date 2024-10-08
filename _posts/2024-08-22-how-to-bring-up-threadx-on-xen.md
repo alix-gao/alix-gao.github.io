@@ -721,8 +721,6 @@ the generic timer provides a standardized timer framework for arm cores.
 
 the number of timers that a core provides (depends on which extensions are implemented):
 
-https://developer.arm.com/documentation/102142/0100/Virtualizing-the-generic-timers
-
 ![image](../assets/2024.08/s18.png)
 
 the virtual count allows a hypervisor to show virtual time to a virtual machine (VM). for example, a hypervisor could hide the passage of time when the VM was not scheduled. this means that the virtual count can represent time experienced by the VM, rather than wall clock time.
@@ -766,6 +764,7 @@ configuring the Arm GIC, refer to 'Arm Generic Interrupt Controller v3 and v4 Ov
 #### 10.4 virtual timer configuration
 
 configuring the generic timer, refer to 'AArch64 Programmer's Guides - Generic Timer' section 3.3 & 3.4.
+
 
 start debugging and enter the interrupt handler, where you can see that the INTID is 27, which is as expected:
 
