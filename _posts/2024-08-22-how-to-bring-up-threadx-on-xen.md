@@ -34,7 +34,7 @@ EL2: used for hypervisors in virtualization scenarios.
 
 EL3: the highest privilege level, usually for secure monitor code and system management.
 
-## all steps
+## all key steps
 
 ### step 1. build threadx project
 
@@ -709,6 +709,10 @@ timer is a core component of the os.
 
 by providing periodic interrupts, the os schedules tasks efficiently to achieve effective multitasking and system operation.
 
+to enable the timer, the main considerations are the timer mechanism, gic interrupt handling, the timer interrupt configuration, and the timer configuration.
+
+#### 10.1 timer mechanism
+
 according to 'AArch64 Programmer's Guides - Generic Timer', arm-v8 includes the generic timer.
 
 the generic timer provides a standardized timer framework for arm cores.
@@ -717,7 +721,13 @@ the generic timer provides a standardized timer framework for arm cores.
 
 the number of timers that a core provides (depends on which extensions are implemented):
 
+https://developer.arm.com/documentation/102142/0100/Virtualizing-the-generic-timers
+
 ![image](../assets/2024.08/s18.png)
+
+the virtual count allows a hypervisor to show virtual time to a virtual machine (VM). for example, a hypervisor could hide the passage of time when the VM was not scheduled. this means that the virtual count can represent time experienced by the VM, rather than wall clock time.
+
+so choose virtual timer as os tick.
 
 the interrupt ID (INTID) that is used for each timer is defined by the Server Base System Architecture (SBSA), shown here:
 
@@ -725,9 +735,57 @@ the interrupt ID (INTID) that is used for each timer is defined by the Server Ba
 
 TODO: add xen timer virtualization and debug the intid allocated by xen.
 
+#### 10.2 gic interrupt handling
+
+GICv3 (Generic Interrupt Controller version 3) is an ARM architecture interrupt controller that efficiently manages interrupts in multi-core processors, supports a larger number of interrupt sources, and introduces system-level and virtualization-related interrupt management features.
+
+according to 'Arm Generic Interrupt Controller v3 and v4 Overview', the register interface of a GICv3 interrupt controller is split into three groups:
+
+- distributor interface
+
+- redistributor interface
+
+- CPU interface
+
+![image](../assets/2024.08/s20.png)
+
+each interrupt source is identified by an ID number, which is referred to as an INTID. the interrupt types that are introduced in the preceding list are defined in terms of ranges of INTIDs:
+
+![image](../assets/2024.08/s21.png)
+
+In terms of scope, the timer interrupt belongs to PPI (Private Peripheral Interrupt).
+
+note: timers can be configured to generate an interrupt. the interrupt frome a core's timer can only be delivered to that core.
+
+this means there is no need to configure gicr for timer interrupt.
+
+#### 10.3 timer interrupt configuration
+
+configuring the Arm GIC, refer to 'Arm Generic Interrupt Controller v3 and v4 Overview' section 5.
+
+#### 10.4 virtual timer configuration
+
+configuring the generic timer, refer to 'AArch64 Programmer's Guides - Generic Timer' section 3.3 & 3.4.
+
+Start debugging and enter the interrupt handler, where you can see that the INTID is 27, which is as expected:
+
+![image](../assets/2024.08/s22.png)
+
+single-step debugging, crash：
+
+![image](../assets/2024.08/s23.png)
+
+check the source:
+
 ## conclusion
 
 nothing
+
+## references
+
+Arm Generic Interrupt Controller v3 and v4 Overview
+
+AArch64 Programmer's Guides - Generic Timer
 
 ## future
 enable smp for threadx
