@@ -947,7 +947,7 @@ of course, it crashed because dtb address 0x43e00000 cannot be accessed in main.
 
 ![image](../assets/2024.08/s31.png)
 
-by reviewing the startup.s code before the main function, it can be seen that physical to virtual address mapping was performed and the MMU was enabled during startup. when executing el1_entry_aarch64, the dtb address space can be accessed because the MMU is disabled.
+by reviewing the `startup.s` code before the `main` function, it can be seen that physical to virtual address mapping was performed and the MMU was enabled during startup. when executing `el1_entry_aarch64`, the dtb address space can be accessed because the MMU is disabled.
 
 ### step 13. enable MMU
 
