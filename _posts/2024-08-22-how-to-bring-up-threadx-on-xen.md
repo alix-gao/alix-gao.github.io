@@ -765,9 +765,13 @@ at last, check the interrupt service routine:
 
 ```c
 ports/cortex_a53/gnu/xen_build/startup.s
-start64:
-    // program the VBARs
+el1_entry_aarch64:
+    // just check el by manual
+    mrs x1, CurrentEL
+
+    // load el1 interrupt vector
     ldr x1, =el1_vectors
+    virt_to_phys x1
     msr VBAR_EL1, x1
 
 ports/cortex_a53/gnu/xen_build/vectors.s
@@ -862,6 +866,69 @@ __tx_timer_no_time_slice:
 ```
 
 ### step 12. supporting dtb
+
+as mentioned before, xen passes hardware information to the vm through the device tree.
+
+as we known, linux supports xen, so check the documentation of linux:
+
+![image](../assets/2024.08/s28.png)
+
+check the register x0 when booting threadx vm:
+
+![image](../assets/2024.08/s29.png)
+
+modify the code to pass the dtb address into the main function.
+
+```diff
+ports/cortex_a53/gnu/xen_build/startup.s
+el1_entry_aarch64:
++   // save dtb physical address
++   mov x28, x0
+
+    // just check el by manual
+    mrs x1, CurrentEL
+
+    // load el1 interrupt vector
+    ldr x1, =el1_vectors
+    virt_to_phys x1
+    msr VBAR_EL1, x1
+......
+    // Set argc = 1, argv[0] = "" and then call main
+    .pushsection .data
+    .align 3
+argv:
+    .dword arg0
+    .dword 0
+arg0:
+    .byte 0
+    .popsection
+
++   ldr x0, =argv
++   add x0, x0, #8
++   str x28, [x0]
+
+-   mov x0, #1
++   mov x0, #2
+    ldr x1, =argv
+    bl main
+
+ports/cortex_a53/gnu/xen_build/main.c
+int main(int argc, char *argv[])
+{
+    void *device_tree;
+
+    HYPERVISOR_console_io(CONSOLEIO_write, 8, "threadx\n");
+
++   printf("main argc %d, argv %p\n", argc, argv[1]);
+```
+
+after modification, run and check the console information:
+
+![image](../assets/2024.08/s30.png)
+
+of course, it crashed because dtb address 0x43e00000 cannot be accessed in main.
+
+![image](../assets/2024.08/s31.png)
 
 ## conclusion
 
