@@ -767,7 +767,7 @@ configuring the Arm GIC, refer to 'Arm Generic Interrupt Controller v3 and v4 Ov
 
 configuring the generic timer, refer to 'AArch64 Programmer's Guides - Generic Timer' section 3.3 & 3.4.
 
-Start debugging and enter the interrupt handler, where you can see that the INTID is 27, which is as expected:
+start debugging and enter the interrupt handler, where you can see that the INTID is 27, which is as expected:
 
 ![image](../assets/2024.08/s22.png)
 
