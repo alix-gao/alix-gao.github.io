@@ -239,7 +239,7 @@ static int __init kernel_zimage64_probe(struct kernel_info *info,
 #define ZIMAGE64_MAGIC_V1 0x644d5241 /* "ARM\x64" */
 ```
 
-open the documentation in the comment of the kernel_zimage64_probe function:
+open the documentation in the comment of the `kernel_zimage64_probe` function:
 
 ![image](../assets/2024.08/s3.png)
 
@@ -282,11 +282,11 @@ no obvious error logs.
 
 ![image](../assets/2024.08/s5.png)
 
-the kernel_probe function has finished executing (confirm this through step-by-step debugging).
+the `kernel_probe` function has finished executing (confirm this through step-by-step debugging).
 
-next, verify the subsequent execution flow: kernel_probe() -> construct_domU() -> create_domUs() -> start_xen()
+next, verify the subsequent execution flow: `kernel_probe()` -> `construct_domU()` -> `create_domUs()` -> `start_xen()`.
 
-arrive at the key function start_xen:
+arrive at the key function `start_xen`:
 
 ```c
 /* C entry point for boot CPU */
@@ -364,13 +364,13 @@ step-by-step debugging, it trapped in hypervisor:
 
 ![image](../assets/2024.08/s12.png)
 
-here, 0x80054e30 is program address. obviously, the address accessed by function EnableGICD exceeds the range allocated by xen.
+here, 0x80054e30 is program address. obviously, the address accessed by function `EnableGICD` exceeds the range allocated by xen.
 
 hence, it causes a trap into the hypervisor xen.
 
 ### step 6. update memory layout of threadx
 
-threadx calls the function EnableGICD directly in sample startup.s before initializing the MMU, so the implicit information is that the virtual addresses and physical addresses are the same in the memory layout.
+threadx calls the function `EnableGICD` directly in sample `startup.s` before initializing the MMU, so the implicit information is that the virtual addresses and physical addresses are the same in the memory layout.
 
 it is not perfect, but just follow it now.
 
@@ -388,11 +388,11 @@ ports/cortex_a53/gnu/xen_build/threadx.ld
 
 rebuild threadx and restart debugging.
 
-EnableGICD still caused a trap:
+`EnableGICD` still caused a trap:
 
 ![image](../assets/2024.08/s13.png)
 
-check the source of EnableGICD:
+check the source of `EnableGICD`:
 
 ```c
 GICv3_distributor __attribute__((section(".gicd"))) gicd;
@@ -403,7 +403,7 @@ void EnableGICD(GICDCTLRFlags_t flags)
 }
 ```
 
-check the .gicd section in lds:
+check the `.gicd` section in lds:
 
 ```text
 ports/cortex_a53/gnu/xen_build/threadx.ld
@@ -561,15 +561,15 @@ threadx/ports/cortex_a53/gnu/xen_build/threadx.ld
     }
 ```
 
-after updated the gic address, the function EnableGICD can complete execution.
+after updated the gic address, the function `EnableGICD` can complete execution.
 
 TODO: how does xen implement interrupt virtualization?
 
 ### step 8. go to main
 
-upon continuing execution, a crash is still encountered before main.
+upon continuing execution, a crash is still encountered before `main`.
 
-the instruction that caused the crash is a call to memset.
+the instruction that caused the crash is a call to `memset`.
 
 ![image](../assets/2024.08/s14.png)
 
@@ -591,7 +591,7 @@ ports/cortex_a53/gnu/CMakeLists.txt
 +target_link_libraries(${APP_NAME} ${CMAKE_SOURCE_DIR}/../libc/build/libc.a)
 ```
 
-finally, it comes the main function.
+finally, it comes the `main` function.
 
 ### step 9. printf
 
@@ -731,7 +731,7 @@ the interrupt ID (INTID) that is used for each timer is defined by the Server Ba
 
 ![image](../assets/2024.08/s19.png)
 
-TODO: add xen timer virtualization and debug the intid allocated by xen.
+TODO: add xen timer virtualization and debug the INTID allocated by xen.
 
 #### 10.2 gic interrupt handling
 
@@ -807,15 +807,15 @@ check the source:
 
 ![image](../assets/2024.08/s24.png)
 
-it is clear that the registers of EL3 are being operated here, and the modification plan is also very simple: add a compile-time macro switch EL1.
+it is clear that the registers of EL3 are being operated here, and the modification plan is also very simple: add a compile-time macro switch `EL1`.
 
 ![image](../assets/2024.08/s25.png)
 
-after modification, _tx_thread_context_save has finished executing, it is entering the irqHandler function.
+after modification, `_tx_thread_context_save` has finished executing, it is entering the `irqHandler` function.
 
 ![image](../assets/2024.08/s26.png)
 
-function irqHandler is arranged in timer.c temporarily.
+function `irqHandler` is arranged in timer.c temporarily.
 
 ```c
 ports/cortex_a53/gnu/xen_build/timer.c
@@ -842,11 +842,11 @@ void irqHandler(void)
 }
 ```
 
-continue to run, it crashed in _tx_timer_interrupt().
+continue to run, it crashed in `_tx_timer_interrupt()`.
 
 ![image](../assets/2024.08/s27.png)
 
-it is an address access error, null pointer. check the source code, when the vtimer interrupt arrives, global variable _tx_timer_current_ptr maybe null. so add a check:
+it is an address access error, null pointer. check the source code, when the vtimer interrupt arrives, global variable `_tx_timer_current_ptr` maybe null. so add a check:
 
 ```diff
 ports/cortex_a53/gnu/src/tx_timer_interrupt.s
@@ -869,7 +869,7 @@ __tx_timer_no_time_slice:
 
 as mentioned before, xen passes hardware information to the vm through the device tree.
 
-in order to support device tree, i involved [dtc](https://github.com/dgibson/dtc).
+in order to support device tree, i involved [dtc](https://github.com/dgibson/dtc) for threadx vm.
 
 ```diff
 ports/cortex_a53/gnu/CMakeLists.txt
@@ -887,7 +887,7 @@ check the register x0 when booting threadx vm:
 
 ![image](../assets/2024.08/s29.png)
 
-modify the code to pass the dtb address into the main function.
+modify the code to pass the dtb address into the `main` function.
 
 ```diff
 ports/cortex_a53/gnu/xen_build/startup.s
@@ -943,7 +943,7 @@ after modification, run and check the console information:
 
 ![image](../assets/2024.08/s30.png)
 
-of course, it crashed because dtb address 0x43e00000 cannot be accessed in main.
+of course, it crashed because dtb address 0x43e00000 cannot be accessed in `main`.
 
 ![image](../assets/2024.08/s31.png)
 
