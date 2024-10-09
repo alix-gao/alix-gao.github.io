@@ -832,8 +832,6 @@ static void ArmWriteCntvCtl(uint64_t value)
 }
 ```
 
-### step 11. debug timer
-
 start debugging and enter the interrupt handler, where you can see that the INTID is 27, which is as expected:
 
 ![image](../assets/2024.08/s22.png)
@@ -904,7 +902,7 @@ __tx_timer_no_time_slice:
     BEQ     __tx_timer_no_timer                 // No, just increment the timer
 ```
 
-### step 12. supporting dtb
+### step 11. supporting dtb
 
 as mentioned before, xen passes hardware information to the vm through the device tree.
 
@@ -986,9 +984,95 @@ of course, it crashed because dtb address 0x43e00000 cannot be accessed in `main
 
 ![image](../assets/2024.08/s31.png)
 
-by reviewing the `startup.s` code before the `main` function, it can be seen that physical to virtual address mapping was performed and the MMU was enabled during startup. when executing `el1_entry_aarch64`, the dtb address space can be accessed because the MMU is disabled.
+by reviewing the `startup.s` code before the `main` function, it can be seen that physical to virtual address mapping was performed and the MMU was enabled during startup. when executing `el1_entry_aarch64`, the dtb address space can be accessed because the MMU is disabled. the dtb address can not be accessed after the MMU is enabled.
 
-### step 13. enable MMU
+### step 12. map dtb space
+
+in order to access dtb address in `main`, the physical address of dtb address need to be mapped into virtual address space.
+
+in aarch64, the generic address translation process:
+
+![image](../assets/2024.08/s32.png)
+
+TCR_EL1 (Translation Control Register for Exception Level 1) is a system register in ARM architecture that controls memory translation settings, including page size, address ranges, and translation table base configuration for the EL1 exception level.
+
+![image](../assets/2024.08/s33.png)
+
+first take a look at the current implementation, the TCR_EL1 register is set to 0x00000000 00802520.
+
+```c
+ports/cortex_a53/gnu/xen_build/startup.s
+    ldr x1, =0x0000000000802520
+    msr TCR_EL1, x1
+    isb
+```
+
+because TCR_EL1.DS is 0, so the OA (output address) is 48 bits.
+
+![image](../assets/2024.08/s34.png)
+
+the format of the corresponding page table is as follows:
+
+![image](../assets/2024.08/s35.png)
+
+prepare dtb level 2 page table, virtual address space for dtb from xen, and map it.
+
+```diff
+ports/cortex_a53/gnu/xen_build/threadx.ld
++    .dtb 0x8000000 (NOLOAD) : {
++        dtb = .;
++        . = . + 0x10000;
++    }
+......
++    .ttb0_l2_dtb (NOLOAD) : {
++        . = ALIGN(4096);
++        __ttb0_l2_dtb = .;
++        . = . + 0x1000;
++    }
+
+ports/cortex_a53/gnu/xen_build/startup.s
++    //** map dtb address space **
++    ldr x22, =__ttb0_l2_dtb
++    virt_to_phys x22
++    mov x1, #(512 << 3)
++    mov x0, x22
++    bl ZeroBlock
++    ldr x4, =dtb // this is virtual address
++    ubfx x23, x4, #30, #2
++    ubfx x24, x4, #21, #9
++    // update level 1 table
++    orr x1, x22, #TT_S1_ATTR_TABLE
++    ldr x0, [x21, x23, lsl #3]
++    cmp x0, #0
++    beq use_dtb_l2_table
++    nop
++    // use current level 1 table (__ttb0_l2_ram)
++    lsr x0, x0, #2
++    lsl x0, x0, #2
++    mov x22, x0
++    b update_l2_table
++  use_dtb_l2_table:
++    str x1, [x21, x23, lsl #3]
++  update_l2_table:
++    // 2M for dtb is enough
++    mov x4, x28
++    bic x4, x4, #((1 << 21) - 1)
++    ldr x1, =(TT_S1_ATTR_BLOCK | \
++             (1 << TT_S1_ATTR_MATTR_LSB) | \
++              TT_S1_ATTR_NS | \
++              TT_S1_ATTR_AP_RW_PL1 | \
++              TT_S1_ATTR_SH_INNER | \
++              TT_S1_ATTR_AF | \
++              TT_S1_ATTR_nG)
++    orr x1, x1, x4
++    // x0 = address of level 2 table
++    add x0, x22, x24, lsl #3
++    str x1, [x0]
+```
+
+### step 13. virtual address
+
+in section 'update memory layout of threadx', note that the virtual addresses and physical addresses are the same in the memory layout. but it is generally unreasonable to require virtual addresses to be the same as physical addresses.
 
 ## conclusion
 
