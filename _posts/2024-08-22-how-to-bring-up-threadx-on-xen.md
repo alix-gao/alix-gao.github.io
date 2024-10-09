@@ -1000,7 +1000,7 @@ TCR_EL1 (Translation Control Register for Exception Level 1) is a system registe
 
 first take a look at the current implementation, the TCR_EL1 register is set to 0x00000000 00802520.
 
-```c
+```text
 ports/cortex_a53/gnu/xen_build/startup.s
     ldr x1, =0x0000000000802520
     msr TCR_EL1, x1
@@ -1017,7 +1017,7 @@ the format of the corresponding page table is as follows:
 
 therefore, the last two bits can only be b01 or b11, which indicate that the next level is either a block address (i.e., a large memory address) or a page table, respectively. In `startup.s`, it is always set to b11:
 
-```c
+```text
 ports/cortex_a53/gnu/xen_build/startup.s
     // Get the start address of RAM (the EXEC region) into x4
     // and calculate the offset into the L1 table (1GB per region,
@@ -1110,7 +1110,7 @@ ports/cortex_a53/gnu/xen_build/threadx.ld
 
 it crashed when running. the following is at the beginning of `el1_entry_aarch64`.
 
-```c
+```text
 ports/cortex_a53/gnu/xen_build/startup.s
     //
     // Now we're in EL1, setup the application stack
@@ -1181,6 +1181,47 @@ el1_entry_aarch64:
 after the modification, it crashes after enabling the MMU in the `startup.s`, instructions at physical addresses cannot be accessed, but virtual addresses can be accessed.
 
 ![image](../assets/2024.08/s36.png)
+
+how to solve this problem? add a new mapping relationship: the virtual address equals the physical address, meaning that one physical address space is mapped to two virtual address spaces.
+
+![image](../assets/2024.08/s37.png)
+
+after the dual mapping, the instructions can execute normally after enabling the MMU:
+
+![image](../assets/2024.08/s38.png)
+
+in addition, after enabling the MMU, the stack also needs to be reconfigured, ensuring that the stack is set using virtual addresses at this time.
+
+```diff
+ports/cortex_a53/gnu/xen_build/startup.s
+    // Enable the MMU.  Caches will be enabled later, after scatterloading.
+    //
+    mrs x1, SCTLR_EL1
+    orr x1, x1, #SCTLR_ELx_M
+    bic x1, x1, #SCTLR_ELx_A // Disable alignment fault checking.  To enable, change bic to orr
+    msr SCTLR_EL1, x1
+    isb
+
++   // jump to VA space & flush pipeline
++   ldr x0, =va_space
++   br x0
++ va_space:
++   // ** set stack pointer with VA
++   ldr x0, =__handler_stack
++   sub x0, x0, x19, lsl #14
++   mov sp, x0
++   MSR     SPSel, #0
++   ISB
++   ldr x0, =__stack
++   sub x0, x0, x19, lsl #14
++   mov sp, x0
+```
+
+here, the program addresses in threadx are decoupled from the physical addresses allocated by xen.
+
+### step 14. mmap
+
+### step 15. example threads
 
 ## conclusion
 
