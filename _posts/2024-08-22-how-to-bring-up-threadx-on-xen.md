@@ -1090,6 +1090,32 @@ ports/cortex_a53/gnu/xen_build/startup.s
 +    str x1, [x0]
 ```
 
+notice, here the memory type is `(1 << TT_S1_ATTR_MATTR_LSB)`.
+
+different types of software have different memory requirements. e.g., frame buffer memory is typically large (a few megabytes) and is usually written more than it is read by the processor. using strong ordered memory for a frame buffer generates very large amounts of bus traffic, because operations on the entire buffer are implemented using partial writes rather than line writes. therefore, systems should use write-combining memory for frame buffers whenever possible.
+
+the ARM64 architecture uses different memory types, such as normal, device, and strongly-ordered, which control how memory accesses are handled. The MAIR_EL1 (Memory Attribute Indirection Register for EL1) is used to configure memory attributes for these types, mapping memory regions to their corresponding attributes, such as cacheability and access order.
+
+in `startup.s`, there are 3 memory types are set when booting.
+
+```text
+ports/cortex_a53/gnu/xen_build/startup.s
+    //
+    // Set up memory attributes
+    //
+    // These equate to:
+    //
+    // 0 -> 0b01000100 = 0x00000044 = Normal, Inner/Outer Non-Cacheable
+    // 1 -> 0b11111111 = 0x0000ff00 = Normal, Inner/Outer WriteBack Read/Write Allocate
+    // 2 -> 0b00000100 = 0x00040000 = Device-nGnRE
+    //
+    mov  x1, #0xff44
+    movk x1, #4, LSL #16    // equiv to: movk x1, #0x0000000000040000
+    msr MAIR_EL1, x1
+```
+
+1 is the index of memory attributes in MAIR_EL1.
+
 now, `fdt_check_header` in `main` returned 0 which means dtb is valid.
 
 ### step 13. virtual address
@@ -1221,7 +1247,110 @@ here, the program addresses in threadx are decoupled from the physical addresses
 
 ### step 14. mmap
 
+next, decouple the peripheral address space, as the peripheral addresses were previously hardcoded in `threadx.ld`. in reality, xen passes the allocated physical addresses (which are actually IPA) of the peripherals to the vm through the device tree.
+
+implement one function `mmap_dev` to convert device io addresses to virtual addresses:
+
+```diff
+ports/cortex_a53/gnu/xen_build/mmap.c
++#define update_l2_block(t, va, pa) \
++    do { \
++        uint64_t *tab = t; \
++        *(tab + (((va) >> 21) & 0x1ff)) = ((pa) & (~0x1fffff)) | (TT_S1_ATTR_BLOCK | (2 << TT_S1_ATTR_MATTR_LSB) | TT_S1_ATTR_NS | TT_S1_ATTR_AP_RW_PL1 | TT_S1_ATTR_AF | TT_S1_ATTR_nG); \
++    } while (0)
++
++#define get_l2_item(t, va) *((uint64_t *)(t) + (((va) >> 21) & 0x1ff))
++
++#define get_l1_item(t, va) *((uint64_t *)(t) + (((va) >> 30) & 0xf))
++
++void mmap_dev(uint64_t va, uint64_t pa, size_t size)
++{
++    uint64_t *tab1 = (uint64_t *) &__ttb0_l1;
++    uint64_t *tab2 = (uint64_t *) &__ttb0_l2_periph;
++
++    // check item of table level 1
++    if (0 == get_l1_item(tab1, va)) {
++        // level 2
++        update_l2_block(tab2, va, pa);
++        __asm__ __volatile__("dsb ish");
++
++        // level 1
++        get_l1_item(tab1, va) = (uint64_t) virt_to_phys(tab2) | TT_S1_ATTR_TABLE;
++        __asm__ __volatile__("dsb ish");
++    } else {
++        // level 2, notice tab2 is get from tab1, so tab2 is physical address
++        tab2 = (uint64_t *)(get_l1_item(tab1, va) & (~0xfff));
++        // we could access physcial address beacause of shadow map
++        for (size_t i = 0; i < size; i += L2_BLOCK_ADDR_SIZE) {
++            update_l2_block(tab2, va + i, pa + i);
++        }
++        __asm__ __volatile__("dsb ish");
++    }
++
++    // flush tlb
++    __asm__ __volatile__("tlbi VMALLE1\n\t"
++                         "ic iallu\n\t" /* flush I-cache */
++                         "dsb sy\n\t" /* ensure completion of TLB flush */
++                         "isb");
++}
+```
+
+notice, here memory type is index 2 `(2 << TT_S1_ATTR_MATTR_LSB)` in MAIR_EL1 which means it is device memory type.
+
+the function `mmap_dev` has a flaw in that the mapping granularity is 2M. if finer granularity is required, such as a 4K mapping, then a level 3 page table must be used.
+
+if a level 3 page table is used, memory space must be prepared for the page tables. e.g., the occupied GIC address space is 0x1000000 (which doesn’t consume actual memory, as it is MMIO space). the number of required page tables is 0x1000000 / 2M = 8. the memory required for level 3 page tables would be 8 * 4K.
+
+![image](../assets/2024.08/s39.png)
+
+but 8 * 4K is too expensive for a system like threadx, especially considering that it has only allocated 64K of memory to this VM.
+
+![image](../assets/2024.08/s40.png)
+
+so abandoning the level 3 page table approach, just map peripherals in the level 2 page table. for most embedded chips, the peripheral address space is generally arranged in a contiguous manner during the chip design.
+
+here, the hardcoded physical address of gicd & gicr could be removed. gic physical address could be read from dtb and then map to virtual address.
+
 ### step 15. example threads
+
+last, add some print in example threads and call threadx api `tx_kernel_enter` in `main`.
+
+```c
+int main(int argc, char *argv[])
+{
+    void *device_tree;
+
+    HYPERVISOR_console_io(CONSOLEIO_write, 8, "threadx\n");
+
+    printf("main argc %d, argv %p, dtb va %p\n", argc, argv[1], argv[2]);
+
+    device_tree = argv[2];
+    if (fdt_check_header(device_tree)) {
+        printf("invalid dtb from xen\n");
+    }
+
+    /* initialize interrupt controller */
+    setup_gic(device_tree);
+
+    /* initialize timer.  */
+    init_timer(device_tree);
+
+    /* Enter ThreadX.  */
+    tx_kernel_enter();
+
+    return 0;
+}
+......
+void thread_0_entry(ULONG thread_input)
+{
+    UINT status;
+
+    /* This thread simply sits in while-forever-sleep loop.  */
+    while(1) {
+        printf("thread 0\n");
+```
+
+all example threads work!
 
 ## conclusion
 
