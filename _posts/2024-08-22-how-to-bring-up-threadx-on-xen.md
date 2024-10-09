@@ -1094,7 +1094,7 @@ now, `fdt_check_header` in `main` returned 0 which means dtb is valid.
 
 ### step 13. virtual address
 
-in section 'update memory layout of threadx', note that the virtual addresses and physical addresses are the same in the memory layout. but it is generally unreasonable to require virtual addresses to be the same as physical addresses. now fix it.
+in section [update memory layout of threadx](#step-6-update-memory-layout-of-threadx), note that the virtual addresses and physical addresses are the same in the memory layout. but it is generally unreasonable to require virtual addresses to be the same as physical addresses. now fix it.
 
 
 
