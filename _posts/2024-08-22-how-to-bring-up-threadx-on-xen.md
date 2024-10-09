@@ -269,7 +269,7 @@ threadx/ports/cortex_a53/gnu/xen_build/threadx.ld
 ENTRY(_threadxen_start)
 SECTIONS
 {
-    . = 0x10000000; /* THREADXEN_VA */
+    . = 0x80000000; /* THREADXEN_VA */
     _threadxen_start = .;
 +   .pecoff : {
 +       KEEP(*(.pecoff))
@@ -1096,7 +1096,91 @@ now, `fdt_check_header` in `main` returned 0 which means dtb is valid.
 
 in section [update memory layout of threadx](#step-6-update-memory-layout-of-threadx), note that the virtual addresses and physical addresses are the same in the memory layout. but it is generally unreasonable to require virtual addresses to be the same as physical addresses. now fix it.
 
+set the program address to 0x10000000 which is not equal with physical address.
 
+```diff
+ports/cortex_a53/gnu/xen_build/threadx.ld
++   . = 0x10000000; /* THREADXEN_VA */
+-   . = 0x40000000; /* THREADXEN_VA */
+    _threadxen_start = .;
+    .pecoff : {
+        KEEP(*(.pecoff))
+    }
+```
+
+it crashed when running. the following is at the beginning of `el1_entry_aarch64`.
+
+```c
+ports/cortex_a53/gnu/xen_build/startup.s
+    //
+    // Now we're in EL1, setup the application stack
+    // the scatter file allocates 2^14 bytes per app stack
+    //
+    ldr x0, =__handler_stack
+    virt_to_phys x0
+    sub x0, x0, x19, lsl #14
+    mov sp, x0
+    MSR     SPSel, #0
+    ISB
+    ldr x0, =__stack
+    virt_to_phys x0
+    sub x0, x0, x19, lsl #14
+    mov sp, x0
+```
+
+the stack loaded here is a virtual address, but the MMU has not been initialized at this point. therefore, when executing the bl function, a memory access error is inevitable.
+
+implement a macro to convert virtual addresses to physical addresses:
+
+```diff
+ports/cortex_a53/gnu/xen_build/startup.s
++// x27 = offset of pa & va
++.macro virt_to_phys va
++	add \va, \va, x27
++.endm
+
+// ------------------------------------------------------------
+// EL1 - Common start-up code
+// ------------------------------------------------------------
+
+    .global el1_entry_aarch64
+    .type el1_entry_aarch64, "function"
+el1_entry_aarch64:
++   // calculate offset of pa & va
++   adr x27, el1_entry_aarch64
++   ldr x28, =el1_entry_aarch64
++   sub x27, x27, x28
+
+    // save dtb physical address
+    mov x28, x0
+
+    // just check el by manual
+    mrs x1, CurrentEL
+
+    // load el1 interrupt vector
+    ldr x1, =el1_vectors
++   virt_to_phys x1
+    msr VBAR_EL1, x1
+
+    //
+    // Now we're in EL1, setup the application stack
+    // the scatter file allocates 2^14 bytes per app stack
+    //
+    ldr x0, =__handler_stack
++   virt_to_phys x0
+    sub x0, x0, x19, lsl #14
+    mov sp, x0
+    MSR     SPSel, #0
+    ISB
+    ldr x0, =__stack
++   virt_to_phys x0
+    sub x0, x0, x19, lsl #14
+    mov sp, x0
+```
+
+after the modification, it crashes after enabling the MMU in the `startup.s`, instructions at physical addresses cannot be accessed, but virtual addresses can be accessed.
+
+![image](../assets/2024.08/s36.png)
 
 ## conclusion
 
