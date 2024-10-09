@@ -1,5 +1,5 @@
 ---
-title: "how to bring up threadx on xen (still writing)"
+title: "how to bring up threadx on xen"
 date: 2024-08-22
 categories: [blog, embedded]
 tags: [threadx, xen]
@@ -971,8 +971,6 @@ int main(int argc, char *argv[])
 +   device_tree = argv[1];
 +   if (fdt_check_header(device_tree)) {
 +       printf("invalid dtb from xen\n");
-+   } else {
-+       printf("valid dtb pointer\n");
 +   }
 ```
 
@@ -1115,6 +1113,47 @@ ports/cortex_a53/gnu/xen_build/startup.s
 ```
 
 1 is the index of memory attributes in MAIR_EL1.
+
+pass dtb virtual address to `main`.
+
+```diff
+ports/cortex_a53/gnu/xen_build/startup.s
+argv:
+    .dword arg0
+    .dword 0
++   .dword 0
+arg0:
+    .byte 0
+    .popsection
+
+    ldr x0, =argv
+    add x0, x0, #8
+    str x28, [x0]
++   ldr x1, =dtb
++   add x0, x0, #8
++   str x1, [x0]
+
+-   mov x0, #2
++   mov x0, #3
+    ldr x1, =argv
+    bl main
+
+ports/cortex_a53/gnu/xen_build/main.c
+int main(int argc, char *argv[])
+{
+    void *device_tree;
+
+    HYPERVISOR_console_io(CONSOLEIO_write, 8, "threadx\n");
+
+-   printf("main argc %d, argv %p\n", argc, argv[1]);
++   printf("main argc %d, argv %p, dtb va %p\n", argc, argv[1], argv[2]);
+
+-   device_tree = argv[1];
++   device_tree = argv[2];
+    if (fdt_check_header(device_tree)) {
+        printf("invalid dtb from xen\n");
+    }
+```
 
 now, `fdt_check_header` in `main` returned 0 which means dtb is valid.
 
