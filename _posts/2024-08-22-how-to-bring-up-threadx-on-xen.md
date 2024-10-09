@@ -1015,6 +1015,26 @@ the format of the corresponding page table is as follows:
 
 ![image](../assets/2024.08/s35.png)
 
+therefore, the last two bits can only be b01 or b11, which indicate that the next level is either a block address (i.e., a large memory address) or a page table, respectively. In `startup.s`, it is always set to b11:
+
+```c
+ports/cortex_a53/gnu/xen_build/startup.s
+    // Get the start address of RAM (the EXEC region) into x4
+    // and calculate the offset into the L1 table (1GB per region,
+    // max 4GB)
+    //
+    // x23 = L1 table offset, saved for later comparison against
+    //       peripheral offset
+    //
+    ldr x4, =__code_start
+    ubfx x23, x4, #30, #2
+
+    orr x1, x22, #TT_S1_ATTR_PAGE
+    str x1, [x21, x23, lsl #3]
+```
+
+register x23 holds the bits 30 to 38 of the ram start address, therefore it is the index of the level 1 page table.
+
 prepare dtb level 2 page table, virtual address space for dtb from xen, and map it.
 
 ```diff
@@ -1070,9 +1090,13 @@ ports/cortex_a53/gnu/xen_build/startup.s
 +    str x1, [x0]
 ```
 
+now, `fdt_check_header` in `main` returned 0 which means dtb is valid.
+
 ### step 13. virtual address
 
-in section 'update memory layout of threadx', note that the virtual addresses and physical addresses are the same in the memory layout. but it is generally unreasonable to require virtual addresses to be the same as physical addresses.
+in section 'update memory layout of threadx', note that the virtual addresses and physical addresses are the same in the memory layout. but it is generally unreasonable to require virtual addresses to be the same as physical addresses. now fix it.
+
+
 
 ## conclusion
 
