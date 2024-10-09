@@ -793,6 +793,45 @@ irqFirstLevelHandler:
 
 configuring the generic timer, refer to 'AArch64 Programmer's Guides - Generic Timer' section 3.3 & 3.4.
 
+EL1 virtual timer has the following three system registers:
+
+- CNTV_CTL_EL0: control register
+
+- CNTV_CVAL_EL0: comparator value
+
+- CNTV_TVAL_EL0: timer value
+
+NOTE: EL0 access to these timers is controlled by CNTKCTL_EL1.
+
+using the timer (TVAL) register to configure a timer. the timer register, TVAL, is a 32-bit register. software needs a timer event in X ticks of the clock, software can write X to TVAL.
+
+the generation of interrupts is controlled through the CTL register, using these fields:
+
+- ENABLE: 1 to enables the timer.
+
+- IMASK: interrupt mask. 1 to mask interrupt generation.
+
+- ISTATUS: when ENABLE==1, reports whether the timer is firing.
+
+here is how to operate the CNTV_CTL_EL0 register:
+
+```c
+// Accessors for the architected generic timer registers
+#define ARM_ARCH_TIMER_ENABLE   (1 << 0)
+#define ARM_ARCH_TIMER_IMASK    (1 << 1)
+#define ARM_ARCH_TIMER_ISTATUS  (1 << 2)
+
+static void ArmWriteCntvCtl(uint64_t value)
+{
+    // Write to CNTV_CTL (Virtual Timer Control Register)
+    __asm__ __volatile__("ldr x0, %0\n\t"
+                         "msr cntv_ctl_el0, x0\n\t"
+                         :
+                         :"m"(value)
+                         :"memory");
+}
+```
+
 ### step 11. debug timer
 
 start debugging and enter the interrupt handler, where you can see that the INTID is 27, which is as expected:
