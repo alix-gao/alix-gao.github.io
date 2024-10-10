@@ -36,7 +36,7 @@ EL3: the highest privilege level, usually for secure monitor code and system man
 
 ## all key steps
 
-### step 1. build threadx project
+### step 1. build the threadx project
 
 after cloning the project repository, create a new build folder for porting to xen:
 
@@ -44,7 +44,7 @@ after cloning the project repository, create a new build folder for porting to x
 cp -r ./ports/cortex_a53/gnu/example_build/sample_threadx ./ports/cortex_a53/gnu/xen_build
 ```
 
-yes, here i selected cortex a53 as target. added several cmake files:
+yes, here I selected cortex-a53 as target. added several cmake files:
 
 ```diff
 cmake/aarch64-linux-gnu.cmake
@@ -179,9 +179,10 @@ build/ports/cortex_a53/gnu/threadxen.elf: ELF 64-bit LSB executable, ARM aarch64
 		};
 ```
 
-here, i have allocated one CPU for threadx, which means that threadx does not need to support SMP for the time being.
-the memory available to threadx is very limited, with only 0x10000 bytes.
+here, I allocated one CPU for threadx, which means that threadx does not need to support SMP for the time being.
+the memory available to threadx is very limited, with only 0x10000 KB.
 additionally, threadx is being booted in a typical dom0-less configuration.
+dom0-less refers to a virtualization setup, particularly in xen hypervisor, where multiple guest VMs (virtual machine) are launched directly without relying on the traditional dom0 (the management domain) to start or manage them, improving boot time and system performance.
 
 ### step 3. boot threadx
 
@@ -232,7 +233,7 @@ static int __init kernel_zimage64_probe(struct kernel_info *info,
         return -EINVAL;
 ```
 
-`kernel_zimage64_probe` checks the magic number, the macros are defined:
+`kernel_zimage64_probe` checks the magic number, the macros are defined here:
 
 ```c
 #define ZIMAGE64_MAGIC_V0 0x14000008
@@ -354,9 +355,9 @@ clearly, this instruction is the first instruction of the pecoff header we added
 
 ![image](../assets/2024.08/s10.png)
 
-debugging, the threadx vm crashed because it attempts to access the EL3 register (the default threadx example code is started from bare-metal), while threadx is running in EL1 in the current system.
+debugging, the threadx VM crashed because it attempts to access the EL3 register (the default threadx example code is started from bare-metal), while threadx is running in EL1 in the current system.
 
-modify the jump address to el1_entry_aarch64 in the pecoff header:
+modify the jump address to `el1_entry_aarch64` in the pecoff header:
 
 ![image](../assets/2024.08/s11.png)
 
@@ -374,7 +375,7 @@ threadx calls the function `EnableGICD` directly in sample `startup.s` before in
 
 it is not perfect, but just follow it now.
 
-from boot log, the physical address of threadx vm is 0x40000000.
+from boot log, the physical address of threadx VM is 0x40000000.
 
 ```diff
 ports/cortex_a53/gnu/xen_build/threadx.ld
@@ -418,21 +419,21 @@ ports/cortex_a53/gnu/xen_build/threadx.ld
 
 so 0x2f000000 is the physical address of gicd, of course, it need to be updated.
 
-### step 7. update gic address space
+### step 7. update GIC address space
 
 as we known, xen has interrupt virtualization capabilities.
 
-the GIC (Generic Interrupt Controller) operated within virtual machine (VM) is virtualized by xen, meaning the vm does not directly access the hardware GIC.
+the GIC (Generic Interrupt Controller) operated within VM is virtualized by xen, meaning the VM does not directly access the hardware GIC.
 
-interrupt requests are first received by xen, which then forwards these interrupts to the corresponding vm for handling.
+interrupt requests are first received by xen, which then forwards these interrupts to the corresponding VM for handling.
 
-this allows xen to manage and allocate interrupts effectively, enabling efficient sharing and isolation of hardware resources in a multi-vm environment.
+this allows xen to manage and allocate interrupts effectively, enabling efficient sharing and isolation of hardware resources in a multiple VM environment.
 
-the address space of gic is allocated by xen.
+the address space of GIC is allocated by xen.
 
 check the gicd base from xen source:
 
-create_domUs(void)/construct_domU()/prepare_dtb_domU()/make_gic_domU_node()
+`create_domUs(void)`/`construct_domU()`/`prepare_dtb_domU()`/`make_gic_domU_node()`
 
 ```c
 static int __init make_gic_domU_node(struct kernel_info *kinfo)
@@ -451,7 +452,7 @@ static int __init make_gic_domU_node(struct kernel_info *kinfo)
 }
 ```
 
-here, the SoC uses gic v3.
+here, the SoC uses GIC v3.
 
 ```c
 static int __init make_gicv3_domU_node(struct kernel_info *kinfo)
@@ -523,13 +524,13 @@ static int __init make_gicv3_domU_node(struct kernel_info *kinfo)
 }
 ```
 
-**xen passes hardware information to the vm through the device tree.**
+**xen passes hardware information to the VM through the device tree.**
 
-here, i temporarily hardcoded the gic address into the threadx source code but support device trees.
+here, I temporarily hardcoded the GIC address into the threadx source code but support device trees.
 
-to confirm the addresses of the gic-v3 related registers, continue reading the source code, use GDB for debugging, or add print statements.
+to confirm the addresses of the GIC-v3 related registers, continue reading the source code, use GDB for debugging, or add print statements.
 
-ultimately, the gic address information obtained is as follows:
+ultimately, the GIC address information obtained is as follows:
 
 ```text
 gicd base 0x3001000
@@ -561,9 +562,9 @@ threadx/ports/cortex_a53/gnu/xen_build/threadx.ld
     }
 ```
 
-after updated the gic address, the function `EnableGICD` can complete execution.
+after updated the GIC address, the function `EnableGICD` can complete execution.
 
-TODO: how does xen implement interrupt virtualization?
+PLACEHOLDER: how does xen implement interrupt virtualization?
 
 ### step 8. go to main
 
@@ -575,7 +576,7 @@ the instruction that caused the crash is a call to `memset`.
 
 of course PLT (Procedure Linkage Table) could not be used here.
 
-i added one simple libc ([rtos/libc](https://github.com/tw-embedded/baize-board/tree/master/rtos/libc)) for threadx to solve this issue.
+I added one simple libc ([rtos/libc](https://github.com/tw-embedded/baize-board/tree/master/rtos/libc)) for threadx to solve this issue.
 
 disable the standard libraries and startup files.
 
@@ -595,7 +596,7 @@ finally, it comes the `main` function.
 
 ### step 9. printf
 
-now we have entered the world of c language!
+now we have entered the world of `C` language!
 
 being able to use printf is a good idea!
 
@@ -627,7 +628,7 @@ static int __init xenboot_earlycon_setup(struct earlycon_device *device,
 EARLYCON_DECLARE(xenboot, xenboot_earlycon_setup);
 ```
 
-HYPERVISOR_console_io is defined here:
+`HYPERVISOR_console_io` is defined here:
 
 ```c
 linux/arch/arm64/xen/hypercall.s
@@ -646,7 +647,7 @@ ENDPROC(HYPERVISOR_##hypercall)
 HYPERCALL3(console_io);
 ```
 
-obviously, the vm obtains xen's print services through a hypercall instruction.
+obviously, the VM obtains xen's print services through a hypercall instruction.
 
 next, port this functionality to threadx.
 
@@ -662,7 +663,7 @@ yes, it is!
 
 ![image](../assets/2024.08/s16.png)
 
-i want to use printf but HYPERVISOR_console_io.
+i want to use `printf` but `HYPERVISOR_console_io`.
 
 ```diff
 ports/cortex_a53/gnu/CMakeLists.txt
@@ -682,11 +683,11 @@ ports/cortex_a53/gnu/xen_build/putc.c
 +}
 ```
 
-now, printf works.
+now, `printf` works.
 
 ### step 10. add timer
 
-the main function is responsible for two tasks: initializing hardware (gic, timer) and starting threadx.
+the main function is responsible for two tasks: initializing hardware (GIC, timer) and starting threadx.
 
 ```c
 int main(void)
@@ -703,13 +704,13 @@ int main(void)
 }
 ```
 
-since the gic has already been configured with the address space, now focus on the timer.
+since the GIC has already been configured with the address space, now focus on the timer.
 
-timer is a core component of the os.
+timer is a core component of the OS.
 
-by providing periodic interrupts, the os schedules tasks efficiently to achieve effective multitasking and system operation.
+by providing periodic interrupts, the OS schedules tasks efficiently to achieve effective multitasking and system operation.
 
-to enable the timer, the main considerations are the timer mechanism, gic interrupt handling, the timer interrupt configuration, and the timer configuration.
+to enable the timer, the main considerations are the timer mechanism, GIC interrupt handling, the timer interrupt configuration, and the timer configuration.
 
 #### 10.1 timer mechanism
 
@@ -725,15 +726,15 @@ the number of timers that a core provides (depends on which extensions are imple
 
 the virtual count allows a hypervisor to show virtual time to a virtual machine (VM). for example, a hypervisor could hide the passage of time when the VM was not scheduled. this means that the virtual count can represent time experienced by the VM, rather than wall clock time.
 
-so choose virtual timer as os tick.
+so choose virtual timer as threadx OS tick.
 
 the interrupt ID (INTID) that is used for each timer is defined by the Server Base System Architecture (SBSA), shown here:
 
 ![image](../assets/2024.08/s19.png)
 
-TODO: add xen timer virtualization and debug the INTID allocated by xen.
+PLACEHOLDER: how does xen implement timer virtualization?
 
-#### 10.2 gic interrupt handling
+#### 10.2 GIC interrupt handling
 
 GICv3 (Generic Interrupt Controller version 3) is an ARM architecture interrupt controller that efficiently manages interrupts in multi-core processors, supports a larger number of interrupt sources, and introduces system-level and virtualization-related interrupt management features.
 
@@ -795,11 +796,11 @@ configuring the generic timer, refer to 'AArch64 Programmer's Guides - Generic T
 
 EL1 virtual timer has the following three system registers:
 
-- CNTV_CTL_EL0: control register
+- **CNTV_CTL_EL0**: control register
 
-- CNTV_CVAL_EL0: comparator value
+- **CNTV_CVAL_EL0**: comparator value
 
-- CNTV_TVAL_EL0: timer value
+- **CNTV_TVAL_EL0**: timer value
 
 NOTE: EL0 access to these timers is controlled by CNTKCTL_EL1.
 
@@ -904,9 +905,9 @@ __tx_timer_no_time_slice:
 
 ### step 11. supporting dtb
 
-as mentioned before, xen passes hardware information to the vm through the device tree.
+as mentioned before, xen passes hardware information to the VM through the device tree.
 
-in order to support device tree, i involved [dtc](https://github.com/dgibson/dtc) for threadx vm.
+in order to support device tree, i involved [dtc](https://github.com/dgibson/dtc) for threadx VM.
 
 ```diff
 ports/cortex_a53/gnu/CMakeLists.txt
@@ -920,7 +921,7 @@ as we known, linux supports xen, so check the documentation of linux:
 
 ![image](../assets/2024.08/s28.png)
 
-check the register x0 when booting threadx vm:
+check the register x0 when booting threadx VM:
 
 ![image](../assets/2024.08/s29.png)
 
@@ -1286,7 +1287,7 @@ here, the program addresses in threadx are decoupled from the physical addresses
 
 ### step 14. mmap
 
-next, decouple the peripheral address space, as the peripheral addresses were previously hardcoded in `threadx.ld`. in reality, xen passes the allocated physical addresses (which are actually IPA) of the peripherals to the vm through the device tree.
+next, decouple the peripheral address space, as the peripheral addresses were previously hardcoded in `threadx.ld`. in reality, xen passes the allocated physical addresses (which are actually IPA) of the peripherals to the VM through the device tree.
 
 implement one function `mmap_dev` to convert device io addresses to virtual addresses:
 
@@ -1348,7 +1349,7 @@ but 8 * 4K is too expensive for a system like threadx, especially considering th
 
 so abandoning the level 3 page table approach, just map peripherals in the level 2 page table. for most embedded chips, the peripheral address space is generally arranged in a contiguous manner during the chip design.
 
-here, the hardcoded physical address of gicd & gicr could be removed. gic physical address could be read from dtb and then map to virtual address.
+here, the hardcoded physical address of gicd & gicr could be removed. GIC physical address could be read from dtb and then map to virtual address.
 
 ### step 15. example threads
 
