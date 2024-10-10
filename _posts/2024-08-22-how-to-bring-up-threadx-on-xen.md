@@ -180,7 +180,7 @@ build/ports/cortex_a53/gnu/threadxen.elf: ELF 64-bit LSB executable, ARM aarch64
 ```
 
 here, I allocated one CPU for threadx, which means that threadx does not need to support SMP for the time being.
-the memory available to threadx is very limited, with only 0x10000 KB.
+the memory available to threadx is very limited, with only 0x10000 KB (64M).
 additionally, threadx is being booted in a typical dom0-less configuration.
 dom0-less refers to a virtualization setup, particularly in xen hypervisor, where multiple guest VMs (virtual machine) are launched directly without relying on the traditional dom0 (the management domain) to start or manage them, improving boot time and system performance.
 
@@ -802,17 +802,17 @@ EL1 virtual timer has the following three system registers:
 
 - **CNTV_TVAL_EL0**: timer value
 
-NOTE: EL0 access to these timers is controlled by CNTKCTL_EL1.
+NOTE: EL0 access to these timers is controlled by `CNTKCTL_EL1`.
 
 using the timer (TVAL) register to configure a timer. the timer register, TVAL, is a 32-bit register. software needs a timer event in X ticks of the clock, software can write X to TVAL.
 
 the generation of interrupts is controlled through the CTL register, using these fields:
 
-- ENABLE: 1 to enables the timer.
+- **ENABLE**: 1 to enables the timer.
 
-- IMASK: interrupt mask. 1 to mask interrupt generation.
+- **IMASK**: interrupt mask. 1 to mask interrupt generation.
 
-- ISTATUS: when ENABLE==1, reports whether the timer is firing.
+- **ISTATUS**: when ENABLE==1, reports whether the timer is firing.
 
 here is how to operate the CNTV_CTL_EL0 register:
 
@@ -907,7 +907,7 @@ __tx_timer_no_time_slice:
 
 as mentioned before, xen passes hardware information to the VM through the device tree.
 
-in order to support device tree, i involved [dtc](https://github.com/dgibson/dtc) for threadx VM.
+in order to support device tree, I involved [dtc](https://github.com/dgibson/dtc) for threadx VM.
 
 ```diff
 ports/cortex_a53/gnu/CMakeLists.txt
@@ -1194,7 +1194,7 @@ ports/cortex_a53/gnu/xen_build/startup.s
     mov sp, x0
 ```
 
-the stack loaded here is a virtual address, but the MMU has not been initialized at this point. therefore, when executing the bl function, a memory access error is inevitable.
+the stack loaded here is a virtual address, but the MMU has not been initialized at this point. therefore, when executing the `bl` function, a memory access error is inevitable.
 
 implement a macro to convert virtual addresses to physical addresses:
 
@@ -1339,11 +1339,11 @@ notice, here memory type is index 2 `(2 << TT_S1_ATTR_MATTR_LSB)` in MAIR_EL1 wh
 
 the function `mmap_dev` has a flaw in that the mapping granularity is 2M. if finer granularity is required, such as a 4K mapping, then a level 3 page table must be used.
 
-if a level 3 page table is used, memory space must be prepared for the page tables. e.g., the occupied GIC address space is 0x1000000 (which doesn’t consume actual memory, as it is MMIO space). the number of required page tables is 0x1000000 / 2M = 8. the memory required for level 3 page tables would be 8 * 4K.
+but if a level 3 page table is used, memory space must be prepared for the page tables. e.g., the occupied GIC address space is 0x1000000 (which doesn’t consume actual memory, as it is MMIO space). the number of required page tables is 0x1000000 / 2M = 8. the memory required for level 3 page tables would be 8 * 4K.
 
 ![image](../assets/2024.08/s39.png)
 
-but 8 * 4K is too expensive for a system like threadx, especially considering that it has only allocated 64K of memory to this VM.
+but 8 * 4K is too expensive for a system like threadx, especially considering that it has only allocated 64M of memory to this VM.
 
 ![image](../assets/2024.08/s40.png)
 
