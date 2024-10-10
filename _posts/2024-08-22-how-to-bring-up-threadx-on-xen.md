@@ -1178,7 +1178,7 @@ int main(int argc, char *argv[])
 
 now, `fdt_check_header` in `main` returned 0 which means dtb is valid.
 
-### step 13. virtual address
+### step 13. program address
 
 in section [update memory layout of threadx](#step-6-update-memory-layout-of-threadx), note that the virtual addresses and physical addresses are the same in the memory layout.
 but it is generally unreasonable to require virtual addresses to be the same as physical addresses.
@@ -1309,7 +1309,7 @@ ports/cortex_a53/gnu/xen_build/startup.s
 
 here, the program addresses in threadx are decoupled from the physical addresses allocated by xen.
 
-### step 14. mmap
+### step 14. device address
 
 next, decouple the peripheral address space, as the peripheral addresses were previously hardcoded in `threadx.ld`.
 in reality, xen passes the allocated physical addresses (which are actually IPA) of the peripherals to the VM through the device tree.
