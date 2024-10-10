@@ -9,7 +9,10 @@ tags: [threadx, xen]
 [xen](https://xenproject.org) is a type-I hypervisor, [threadx](https://threadx.io) is a RTOS.
 
 ## why we need virtualization?
-in many industries, it is necessary to be able to run different operating systems (or even no operating system at all) to meet various business requirements. multiple OS could be run without hypervisor. however, the system mostly restart if one core crashed. the embedded field has extremely high requirements for stability, and virtualization can enhance stability.
+in many industries, it is necessary to be able to run different operating systems (or even no operating system at all) to meet various business requirements.
+multiple OS could be run without hypervisor.
+however, the system mostly restart if one core crashed.
+the embedded field has extremely high requirements for stability, and virtualization can enhance stability.
 
 others include, resource efficiency, isolation and security, scalability and flexibility, and so on.
 
@@ -17,22 +20,25 @@ others include, resource efficiency, isolation and security, scalability and fle
 QNX is primarily used in the automotive sector and is a closed-source operating system.
 
 ## prerequisites
-in the development environment, I used QEMU to emulate one board, and the board's SoC adopts an ARM multi-core processor. using QEMU is flexible, low-cost, convenient for debugging (the most important aspect), and easy to promote (users don't need to purchase a development board).
+in the development environment, I used QEMU to emulate one board, and the board's SoC adopts an ARM multi-core processor.
+using QEMU is flexible, low-cost, convenient for debugging (the most important aspect), and easy to promote (users don't need to purchase a development board).
 
 all the reference implementation: <https://github.com/tw-embedded/baize-board>
 
 ## whole architecture
 ![architecture image](../assets/2024.08/picture1.png)
 
-Exception Levels (EL): hierarchical privilege levels in ARM architecture. it determines the amount of control and access a process or code running at a particular level has. there are four levels, from EL0 to EL3, each with different levels of privilege:
+Exception Levels (EL): hierarchical privilege levels in ARM architecture.
+it determines the amount of control and access a process or code running at a particular level has.
+there are four levels, from EL0 to EL3, each with different levels of privilege:
 
-EL0: the lowest privilege level, typically used for user applications.
+**EL0**: the lowest privilege level, typically used for user applications.
 
-EL1: used for operating system kernels and drivers.
+**EL1**: used for operating system kernels and drivers.
 
-EL2: used for hypervisors in virtualization scenarios.
+**EL2**: used for hypervisors in virtualization scenarios.
 
-EL3: the highest privilege level, usually for secure monitor code and system management.
+**EL3**: the highest privilege level, usually for secure monitor code and system management.
 
 ## all key steps
 
@@ -724,7 +730,9 @@ the number of timers that a core provides (depends on which extensions are imple
 
 ![image](../assets/2024.08/s18.png)
 
-the virtual count allows a hypervisor to show virtual time to a virtual machine (VM). for example, a hypervisor could hide the passage of time when the VM was not scheduled. this means that the virtual count can represent time experienced by the VM, rather than wall clock time.
+the virtual count allows a hypervisor to show virtual time to a virtual machine (VM).
+for example, a hypervisor could hide the passage of time when the VM was not scheduled.
+this means that the virtual count can represent time experienced by the VM, rather than wall clock time.
 
 so choose virtual timer as threadx OS tick.
 
@@ -748,13 +756,15 @@ according to 'Arm Generic Interrupt Controller v3 and v4 Overview', the register
 
 ![image](../assets/2024.08/s20.png)
 
-each interrupt source is identified by an ID number, which is referred to as an INTID. the interrupt types that are introduced in the preceding list are defined in terms of ranges of INTIDs:
+each interrupt source is identified by an ID number, which is referred to as an INTID.
+the interrupt types that are introduced in the preceding list are defined in terms of ranges of INTIDs:
 
 ![image](../assets/2024.08/s21.png)
 
 In terms of scope, the timer interrupt belongs to PPI (Private Peripheral Interrupt).
 
-note: timers can be configured to generate an interrupt. the interrupt frome a core's timer can only be delivered to that core.
+note: timers can be configured to generate an interrupt.
+the interrupt frome a core's timer can only be delivered to that core.
 
 this means there is no need to configure gicr for timer interrupt.
 
@@ -804,7 +814,8 @@ EL1 virtual timer has the following three system registers:
 
 NOTE: EL0 access to these timers is controlled by `CNTKCTL_EL1`.
 
-using the timer (TVAL) register to configure a timer. the timer register, TVAL, is a 32-bit register. software needs a timer event in X ticks of the clock, software can write X to TVAL.
+using the timer (TVAL) register to configure a timer. the timer register, TVAL, is a 32-bit register.
+software needs a timer event in X ticks of the clock, software can write X to TVAL.
 
 the generation of interrupts is controlled through the CTL register, using these fields:
 
@@ -884,7 +895,9 @@ continue to run, it crashed in `_tx_timer_interrupt()`.
 
 ![image](../assets/2024.08/s27.png)
 
-it is an address access error, null pointer. check the source code, when the vtimer interrupt arrives, global variable `_tx_timer_current_ptr` maybe null. so add a check:
+it is an address access error, null pointer.
+check the source code, when the vtimer interrupt arrives, global variable `_tx_timer_current_ptr` maybe null.
+so add a check:
 
 ```diff
 ports/cortex_a53/gnu/src/tx_timer_interrupt.s
@@ -983,7 +996,9 @@ of course, it crashed because dtb address 0x43e00000 cannot be accessed in `main
 
 ![image](../assets/2024.08/s31.png)
 
-by reviewing the `startup.s` code before the `main` function, it can be seen that physical to virtual address mapping was performed and the MMU was enabled during startup. when executing `el1_entry_aarch64`, the dtb address space can be accessed because the MMU is disabled. the dtb address can not be accessed after the MMU is enabled.
+by reviewing the `startup.s` code before the `main` function, it can be seen that physical to virtual address mapping was performed and the MMU was enabled during startup.
+when executing `el1_entry_aarch64`, the dtb address space can be accessed because the MMU is disabled.
+the dtb address can not be accessed after the MMU is enabled.
 
 ### step 12. map dtb space
 
@@ -1014,7 +1029,8 @@ the format of the corresponding page table is as follows:
 
 ![image](../assets/2024.08/s35.png)
 
-therefore, the last two bits can only be b01 or b11, which indicate that the next level is either a block address (i.e., a large memory address) or a page table, respectively. In `startup.s`, it is always set to b11:
+therefore, the last two bits can only be b01 or b11, which indicate that the next level is either a block address (i.e., a large memory address) or a page table, respectively.
+In `startup.s`, it is always set to b11:
 
 ```text
 ports/cortex_a53/gnu/xen_build/startup.s
@@ -1091,9 +1107,13 @@ ports/cortex_a53/gnu/xen_build/startup.s
 
 notice, here the memory type is `(1 << TT_S1_ATTR_MATTR_LSB)`.
 
-different types of software have different memory requirements. e.g., frame buffer memory is typically large (a few megabytes) and is usually written more than it is read by the processor. using strong ordered memory for a frame buffer generates very large amounts of bus traffic, because operations on the entire buffer are implemented using partial writes rather than line writes. therefore, systems should use write-combining memory for frame buffers whenever possible.
+different types of software have different memory requirements.
+e.g., frame buffer memory is typically large (a few megabytes) and is usually written more than it is read by the processor.
+using strong ordered memory for a frame buffer generates very large amounts of bus traffic, because operations on the entire buffer are implemented using partial writes rather than line writes.
+therefore, systems should use write-combining memory for frame buffers whenever possible.
 
-the ARM64 architecture uses different memory types, such as normal, device, and strongly-ordered, which control how memory accesses are handled. The MAIR_EL1 (Memory Attribute Indirection Register for EL1) is used to configure memory attributes for these types, mapping memory regions to their corresponding attributes, such as cacheability and access order.
+the ARM64 architecture uses different memory types, such as normal, device, and strongly-ordered, which control how memory accesses are handled.
+The MAIR_EL1 (Memory Attribute Indirection Register for EL1) is used to configure memory attributes for these types, mapping memory regions to their corresponding attributes, such as cacheability and access order.
 
 in `startup.s`, there are 3 memory types are set when booting.
 
@@ -1160,7 +1180,9 @@ now, `fdt_check_header` in `main` returned 0 which means dtb is valid.
 
 ### step 13. virtual address
 
-in section [update memory layout of threadx](#step-6-update-memory-layout-of-threadx), note that the virtual addresses and physical addresses are the same in the memory layout. but it is generally unreasonable to require virtual addresses to be the same as physical addresses. now fix it.
+in section [update memory layout of threadx](#step-6-update-memory-layout-of-threadx), note that the virtual addresses and physical addresses are the same in the memory layout.
+but it is generally unreasonable to require virtual addresses to be the same as physical addresses.
+now fix it.
 
 set the program address to 0x10000000 which is not equal with physical address.
 
@@ -1194,7 +1216,8 @@ ports/cortex_a53/gnu/xen_build/startup.s
     mov sp, x0
 ```
 
-the stack loaded here is a virtual address, but the MMU has not been initialized at this point. therefore, when executing the `bl` function, a memory access error is inevitable.
+the stack loaded here is a virtual address, but the MMU has not been initialized at this point.
+therefore, when executing the `bl` function, a memory access error is inevitable.
 
 implement a macro to convert virtual addresses to physical addresses:
 
@@ -1248,7 +1271,8 @@ after the modification, it crashes after enabling the MMU in the `startup.s`, in
 
 ![image](../assets/2024.08/s36.png)
 
-how to solve this problem? add a new mapping relationship: the virtual address equals the physical address, meaning that one physical address space is mapped to two virtual address spaces.
+how to solve this problem?
+add a new mapping relationship: the virtual address equals the physical address, meaning that one physical address space is mapped to two virtual address spaces.
 
 ![image](../assets/2024.08/s37.png)
 
@@ -1287,7 +1311,8 @@ here, the program addresses in threadx are decoupled from the physical addresses
 
 ### step 14. mmap
 
-next, decouple the peripheral address space, as the peripheral addresses were previously hardcoded in `threadx.ld`. in reality, xen passes the allocated physical addresses (which are actually IPA) of the peripherals to the VM through the device tree.
+next, decouple the peripheral address space, as the peripheral addresses were previously hardcoded in `threadx.ld`.
+in reality, xen passes the allocated physical addresses (which are actually IPA) of the peripherals to the VM through the device tree.
 
 implement one function `mmap_dev` to convert device io addresses to virtual addresses:
 
@@ -1339,7 +1364,9 @@ notice, here memory type is index 2 `(2 << TT_S1_ATTR_MATTR_LSB)` in MAIR_EL1 wh
 
 the function `mmap_dev` has a flaw in that the mapping granularity is 2M. if finer granularity is required, such as a 4K mapping, then a level 3 page table must be used.
 
-but if a level 3 page table is used, memory space must be prepared for the page tables. e.g., the occupied GIC address space is 0x1000000 (which doesn’t consume actual memory, as it is MMIO space). the number of required page tables is 0x1000000 / 2M = 8. the memory required for level 3 page tables would be 8 * 4K.
+but if a level 3 page table is used, memory space must be prepared for the page tables.
+e.g., the occupied GIC address space is 0x1000000 (which doesn’t consume actual memory, as it is MMIO space).
+the number of required page tables is 0x1000000 / 2M = 8. the memory required for level 3 page tables would be 8 * 4K.
 
 ![image](../assets/2024.08/s39.png)
 
@@ -1347,9 +1374,11 @@ but 8 * 4K is too expensive for a system like threadx, especially considering th
 
 ![image](../assets/2024.08/s40.png)
 
-so abandoning the level 3 page table approach, just map peripherals in the level 2 page table. for most embedded chips, the peripheral address space is generally arranged in a contiguous manner during the chip design.
+so abandoning the level 3 page table approach, just map peripherals in the level 2 page table.
+for most embedded chips, the peripheral address space is generally arranged in a contiguous manner during the chip design.
 
-here, the hardcoded physical address of gicd & gicr could be removed. GIC physical address could be read from dtb and then map to virtual address.
+here, the hardcoded physical address of gicd & gicr could be removed.
+GIC physical address could be read from dtb and then map to virtual address.
 
 ### step 15. example threads
 
