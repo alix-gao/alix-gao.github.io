@@ -15,5 +15,4 @@ unfortunately, the official driver does not work. so i made some modifications t
 if you encounter the same problem, you can download the new driver below.
 
 ## new driver for ubuntu 24.04
-aic.deb
-https://github.com/alix-gao/alix-gao.github.io/tree/main/assets/2024.11/aic-mod.deb
+[aic.deb](https://github.com/alix-gao/alix-gao.github.io/tree/main/assets/2024.11/aic-mod.deb)
