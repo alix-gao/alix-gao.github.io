@@ -1,8 +1,8 @@
 ---
 title: "tplink ax900 on ubuntu 24.04"
 date: 2024-11-16
-categories: [blog, development]
-tags: [tubuntu, 24.04, tplink, AX900, TL-XDN7000H]
+categories: [blog, embedded]
+tags: [ubuntu, 24.04, tplink, AX900, TL-XDN7000H]
 ---
 
 ## background
