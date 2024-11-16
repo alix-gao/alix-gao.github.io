@@ -2,13 +2,13 @@
 title: "tplink ax900 on ubuntu 24.04"
 date: 2024-11-16
 categories: [blog, embedded]
-tags: [ubuntu, 24.04, tplink, AX900, TL-XDN7000H]
+tags: [ubuntu, tplink, AX900]
 ---
 
 ## background
 this week our project team needed a workstation for development. i installed ubuntu 24.04 on this workstation.
 
-to access the network, we purchased a TP-LINK AX900 WiFi dongle.
+to access the network, we purchased a TP-LINK AX900 (TL-XDN7000H) WiFi dongle.
 
 unfortunately, the official driver does not work. so i made some modifications to get it functioning properly.
 
